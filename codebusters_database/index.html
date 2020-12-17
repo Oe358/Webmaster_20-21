@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Codebusters Database Connect</title>
+</head>
+<body>
+
+<h1>Hello World</h1>
+
+<!-- Insert these scripts at the bottom of the HTML, but before you use any Firebase services -->
+
+<!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+<script src="https://www.gstatic.com/firebasejs/8.1.2/firebase-app.js"></script>
+
+<!-- If you enabled Analytics in your project, add the Firebase SDK for Analytics -->
+<script src="https://www.gstatic.com/firebasejs/8.1.2/firebase-analytics.js"></script>
+
+<!-- Add Firebase products that you want to use -->
+<script src="https://www.gstatic.com/firebasejs/8.1.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.1.2/firebase-firestore.js"></script>
+
+
+<script>
+  // TODO: Replace the following with your app's Firebase project configuration
+  // For Firebase JavaScript SDK v7.20.0 and later, `measurementId` is an optional field
+  let firebaseConfig = {
+    apiKey: "AIzaSyBl6OX3iQXQrlLPi4KAqUv788EtI5P-AfA",
+    authDomain: "codebusters-fbb2a.firebaseapp.com",
+    projectId: "codebusters-fbb2a",
+    storageBucket: "codebusters-fbb2a.appspot.com",
+    messagingSenderId: "78283087269",
+    appId: "1:78283087269:web:0e99c8cd231fb8353c1c4c",
+    measurementId: "G-65S64FZ3EF"
+  };
+
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  let db = firebase.firestore();
+
+  // Question Data
+  let questions = [
+    {
+      type: "Aristocrat",
+      task: "Decrypt the following aristocrat, a quote from a moderately well-known YouTuber.",
+      text: "G’N AJRE LCBBGJL YE YE BTC XMGJ AV NE BCCBT, SJO BCCBT OAJ’B CUCJ TSUC XMGJ!",
+      frequencies: [3, 8, 9, 0, 4, 0, 4, 0, 0, 7, 0, 2, 2, 2, 2, 0, 0, 1, 2, 4, 2, 1, 0, 2, 2, 0]
+    },
+    {
+      type: "Aristocrat",
+      task: "Decrypt the following K1 aristocrat, which is the ending of a famous song’s music video (yet never occurred in the actual song).",
+      text: "JKY YRK USQRY HLFK NKPLMK YRK PSQRY'X BLU, XLFK FSQRY MZU GQGSUXY YRK YKXY.",
+      frequencies: [0, 1, 0, 0, 0, 3, 2, 1, 0, 1, 9, 4, 2, 1, 0, 2, 4, 6, 4, 0, 4, 0, 0, 4, 10, 1]
+    }
+  ];
+
+
+  // Setting Questions
+  for (let i = 0; i < questions.length; i++) {
+    db.collection("test_questions").doc("question_" + (i + 1)).set({
+      type: questions[i].type,
+      task: questions[i].task,
+      text: questions[i].text,
+      frequencies: questions[i].frequencies
+    })
+      .then(function() {
+        console.log("Document test_questions/question_" + (i + 1) + " successfully written!");
+      })
+      .catch(function(error) {
+        console.error("Error writing document test_questions/question_" + (i + 1) + ": ", error);
+      });
+
+  }
+
+
+
+  // Setting Blank Responses
+  if (confirm("All questions have been written, would you like to proceed with setting blank responses? Warning: all current responses will be lost.")) {
+
+    let replacements = "";
+    for (let i = 0; i < 26; i++) {
+      replacements += " ";
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+
+      let text = "";
+
+      for (let j = 0; j < questions[i].text.length; j++) {
+        if (questions[i].text.charAt(j).match("[A-Za-z]")) {
+          text += " ";
+        }
+      }
+
+      for (let group = 1; group <= 2; group++) {
+        db.collection("responses").doc("group_" + group).collection("test_responses").doc("question_" + (i + 1)).set({
+          text: text,
+          replacements: replacements
+        })
+          .then(function() {
+            console.log("Document responses/group_" + group + "/test_responses/question_" + (i + 1) + " successfully written!");
+          })
+          .catch(function(error) {
+            console.error("Error writing document responses/group_" + group + "/test_responses/question_" + (i + 1) + ": ", error);
+          });
+
+      }
+    }
+
+
+  }
+
+</script>
+</body>
+</html>
