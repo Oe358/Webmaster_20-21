@@ -2,9 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="38010fa4-acf3-48cc-bee5-59694f376b12" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/../Codebusters/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../Codebusters/src/firebaseConfig.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../Codebusters/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Codebusters/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/.tmp/" />
@@ -139,12 +136,12 @@
       <option name="presentableId" value="Default" />
       <updated>1608217686144</updated>
       <workItem from="1608217687463" duration="4958000" />
-      <workItem from="1608245724782" duration="11398000" />
+      <workItem from="1608245724782" duration="11552000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="16356000" />
+    <option name="totallyTimeSpent" value="16510000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-1600" y="-22" width="1600" height="1177" extended-state="6" />
