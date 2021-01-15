@@ -41,234 +41,301 @@
   let db = firebase.firestore();
 
   // Question Data
-  let masonTryouts = [
-    {
-      type: "Timed",
-      task: "Solve this aristocrat. When you have solved it, raise your hand so that the time can be recorded and the solution checked.",
-      text: "OE OC SYIY MKC EKI CJY HKWXUMP KE EKKTD, U SOCCP WUM SKZTN KECYM QY FIYUCTIP UC U TKDD.",
-      frequencies: [0, 0, 8, 3, 5, 1, 0, 1, 3, 1, 9, 0, 4, 1, 2, 2, 1, 0, 2, 4, 6, 0, 2, 1, 6, 1],
-      points: 200,
-      index: 1
-    },
-    {
-      type: "Caesar",
-      task: "Encode this quote using a Caesar shift of 9.",
-      text: "TO DO JUST THE OPPOSITE IS ALSO A FORM OF IMITATION.",
-      points: 150,
-      index: 2
-    },
-    {
-      type: "Affine",
-      task: "Encode this quote using the Affine cipher (a=21, b=19).",
-      text: "KINDNESS: A LANGUAGE DEAF PEOPLE CAN HEAR AND THE BLIND CAN SEE.",
-      points: 250,
-      index: 3
-    },
-    {
-      type: "Aristocrat",
-      task: "Solve this aristocrat once said by Thomas Hobbes.",
-      text: "INU VHGU YG PDO: BYVHIDWC, KYYW, ODBIC, EWAIHBN, DOM BNYWI.",
-      frequencies: [1, 4, 2, 4, 1, 0, 2, 3, 5, 0, 1, 0, 1, 3, 3, 1, 0, 0, 0, 0, 2, 2, 4, 0, 5, 0],
-      points: 350,
-      index: 4
-    },
-    {
-      type: "Aristocrat",
-      task: "Solve this aristocrat by Disraeli.",
-      text: "WSJIE JD PTI HWKOR KE HO JODPHOP< PTI JOQVAWIOUI KE WSJIE PTI GAVOQIS KE H AJEI.",
-      frequencies: [3, 0, 0, 2, 6, 0, 1, 4, 9, 6, 4, 0, 0, 0, 7, 5, 2, 1, 3, 3, 1, 2, 4, 0, 0, 0],
-      points: 250,
-      index: 5
-    },
-    {
-      type: "K2",
-      task: "Solve this K2 patristocrat by Adam R. Gwizdala (keyword GARBAGE).",
-      text: "OJUJP MAMEG IZNUJ PMGFE DGWOM WNBXW ROBGU FFPNG UJPAJ MWFEO OFGXE OOBGI OBGUF FOBMJ SUJPJ PO",
-      frequencies: [2, 5, 0, 1, 4, 7, 8, 0, 2, 8, 0, 0, 6, 3, 10, 6, 0, 1, 1, 0, 6, 0, 4, 2, 0, 1],
-      points: 550,
-      index: 6
-    },
-    {
-      type: "Hill",
-      task: "Decode this Hill cipher using the keyword BOBTICKLE.",
-      matrices: "$\\begin{pmatrix}B & O & B\\\\T & I & C\\\\K & L & E\\end{pmatrix}=\\begin{pmatrix}1 & 14 & 1\\\\19 & 8 & 2\\\\10 & 11 & 4\\end{pmatrix}\\hspace{15pt} Decode\\begin{pmatrix}B & O & B\\\\T & I & C\\\\K & L & E\\end{pmatrix}^{-1}=\\begin{pmatrix}2 & 17 & 4\\\\20 & 4 & 19\\\\5 & 5 & 16\\end{pmatrix}$",
-      text: "MSCNJEGZKNWMGRQDQELKSGGPFBLHZWBSAURQ",
-      points: 300,
-      index: 7
-    },
-    {
-      type: "Patristocrat",
-      task: "Solve this quote by Jim Davis, the creator of Garfield (edited for clarity).",
-      text: "QPXKW VUCKE QAWAC EHOXC YAXRR JQEEJ NOHQO OXCQU NRJQE OXCNQ E",
-      frequencies: [3, 0, 5, 0, 6, 0, 0, 2, 0, 3, 2, 0, 0, 3, 5, 1, 7, 3, 0, 0, 2, 1, 2, 5, 1, 0],
-      points: 550,
-      index: 8
-    },
-    {
-      type: "Vigenere",
-      task: "Decrypt this Vigenere cipher using a key of BLAKE.",
-      text: "IP WRS EPSSVFD BEX EZEC RPE AMX, CCEOHT AECXJWEXGF.",
-      points: 250,
-      index: 9
-    },
-    {
-      type: "Baconian",
-      task: "Solve this baconian cipher given that the last two letters are LY.",
-      text: "AEBCDIFJGHKLQRSTYMNZAOBCDIPUJKLQRSTVYZWABXCDIJEFKGLHMQRSNTYZOABCPUDIVJKLWXEQRFSTYZGHMANBCDIJOPKLQUVWRSXTYEZABFGCDHIJMKLNQORSTPYZUABCVDIJWXKELFGQRSTHYZABCMDIJKLQRNOSTYZPAUBVCWDXIEFJ",
-      points: 350,
-      index: 10
-    },
-    {
-      type: "Baconian",
-      task: "Solve this Baconian cipher by Benjamin Rush.",
-      text: "`+3($`_3$`3$`3+$`(3$_`3$`+3$(`_3+($_`+3$`(3$`_3$+`3$(_+`(_3+($`_+(3$_`+3$(_`+3$`(3$`3_$`+3($`_+3$(`3_$+`3$(_`+(3$_+`(3_$`3$+(`3$`_3$+`3$(_`3$+(`_3$`3+$(`_3$`+3$(`3$_+`3$(`_3$`3+($`3$_+`(3$_`3+($_+`3(_+$`3(",
-      points: 300,
-      index: 11
-    },
-    {
-      type: "RSA",
-      task: "Brandon and Rachel are accountants for a very large bank, and have started a friendship. They communicate via email, because they live thousands of miles apart. Rachel gets curious and asks Brandon the year that they were born. Brandon doesn’t mind telling Rachel, but they know that the bank monitors all employee emails, and is afraid of being the victim of age discrimination. Therefore, Rachel suggests that they use RSA, and they provides their public key: (321719, 65705). Brandon replies with the ciphertext 43124. Rachel’s private key is 273593. In what year was Brandon born?",
-      text: "Enter the answer",
-      points: 450,
-      index: 12
-    },
-    {
-      type: "Morbit",
-      task: "A quote has been encoded using the Morbit Cipher for you to decode. You are told that 9=–●, 1=●●, 2=×–, 3=●×, 5=××, 8=––.",
-      text: "463271312396767134783492467931743324386971731361373956434238474734173698586195873921",
-      points: 200,
-      index: 13
-    },
-    {
-      type: "Pollux",
-      task: "A quote has been encoded using the Pollux Cipher for you to decode. You are told that the quote ends with OUBY.",
-      text: "102111211121102882100128211208820121112210218112101120802100228211112122011121211120221120122101121121181212202000221881218211121112281882808211822811128188",
-      points: 200,
-      index: 14
-    },
-    {
-      type: "Aristocrat",
-      task: "Solve this aristocrat by William Butler Yeats.",
-      text: "YWW DWBE M CMOFZSZOV OMB GMAV M CYWBV WS YLV LVMFY. W! ILVB GMJ ZY CTSSZOV",
-      frequencies: [1, 4, 3, 1, 1, 2, 2, 0, 1, 1, 0, 3, 7, 0, 4, 0, 0, 0, 4, 1, 0, 7, 6, 0, 5, 4],
-      points: 300,
-      index: 15
-    },
-    {
-      type: "K1",
-      task: "Solve this K1 aristocrat.",
-      text: "XGMZH KW MWRVKIS KI HNXAJ HI IMWIKNVM HI NHIMNHVV KW KJHVKHW.",
-      frequencies: [1, 0, 0, 0, 0, 0, 1, 8, 7, 2, 7, 0, 5, 4, 0, 0, 0, 1, 1, 0, 0, 5, 5, 2, 0, 1],
-      points: 300,
-      index: 16
-    },
-    {
-      type: "Xenocrypt",
-      task: "Solve this quote by Joseph Addison that has been translated to Spanish.",
-      text: "IWFJQJ YWV YÑ CWQUÑM NJQ AVEWQ FFAMJ UA YÑQFJV KHA UA DAQAXWV, P TQWMDWYAMEA FAV UJP TQHEJV NWQW VHV DWMEJV.",
-      frequencies: [10, 0, 1, 3, 4, 5, 0, 3, 1, 8, 1, 0, 5, 2, 3, 0, 2, 9, 0, 0, 2, 4, 9, 10, 1, 4, 0],
-      points: 600,
-      index: 17
-    },
-    {
-      type: "Affine",
-      task: "Solve this affine cipher given that the first letter is M and the last is T.",
-      text: "FN WXOGRE OXTBGO FR OP DPEV - GR MLM KPO ORXHG FR OP APYR LO",
-      points: 250,
-      index: 18
-    },
-    {
-      type: "Patristocrat",
-      task: "Solve this patristocrat which contains the word \"GAIN\".",
-      text: "UDRQS VUBQU FBSZB SHFDL UBBQC SVRSU WQKNY VYZYH HQLKU DXDHY YCYLK UBSVR YXHY",
-      frequencies: [0, 6, 2, 4, 0, 2, 0, 5, 0, 0, 3, 3, 0, 1, 0, 0, 5, 3, 6, 0, 7, 4, 1, 2, 8, 2],
-      points: 600,
-      index: 19
-    },
-    {
-      type: "RSA",
-      task: "Special Agent, John, has the following RSA public key: n = 126869 e = 26609. Unfortunately for them, a quantum computer has successfully factored their n: 126869 = 293 * 433. Compute the value of their private key.",
-      text: "Enter the computed private key:",
-      points: 350,
-      index: 20
-    }
-  ];
+  let questions = {
+    masonTryouts: [
+      {
+        type: "Timed",
+        task: "Solve this aristocrat. When you have solved it, raise your hand so that the time can be recorded and the solution checked.",
+        text: "OE OC SYIY MKC EKI CJY HKWXUMP KE EKKTD, U SOCCP WUM SKZTN KECYM QY FIYUCTIP UC U TKDD.",
+        frequencies: [0, 0, 8, 3, 5, 1, 0, 1, 3, 1, 9, 0, 4, 1, 2, 2, 1, 0, 2, 4, 6, 0, 2, 1, 6, 1],
+        points: 200,
+        index: 1
+      },
+      {
+        type: "Caesar",
+        task: "Encode this quote using a Caesar shift of 9.",
+        text: "TO DO JUST THE OPPOSITE IS ALSO A FORM OF IMITATION.",
+        points: 150,
+        index: 2
+      },
+      {
+        type: "Affine",
+        task: "Encode this quote using the Affine cipher (a=21, b=19).",
+        text: "KINDNESS: A LANGUAGE DEAF PEOPLE CAN HEAR AND THE BLIND CAN SEE.",
+        points: 250,
+        index: 3
+      },
+      {
+        type: "Aristocrat",
+        task: "Solve this aristocrat once said by Thomas Hobbes.",
+        text: "INU VHGU YG PDO: BYVHIDWC, KYYW, ODBIC, EWAIHBN, DOM BNYWI.",
+        frequencies: [1, 4, 2, 4, 1, 0, 2, 3, 5, 0, 1, 0, 1, 3, 3, 1, 0, 0, 0, 0, 2, 2, 4, 0, 5, 0],
+        points: 350,
+        index: 4
+      },
+      {
+        type: "Aristocrat",
+        task: "Solve this aristocrat by Disraeli.",
+        text: "WSJIE JD PTI HWKOR KE HO JODPHOP< PTI JOQVAWIOUI KE WSJIE PTI GAVOQIS KE H AJEI.",
+        frequencies: [3, 0, 0, 2, 6, 0, 1, 4, 9, 6, 4, 0, 0, 0, 7, 5, 2, 1, 3, 3, 1, 2, 4, 0, 0, 0],
+        points: 250,
+        index: 5
+      },
+      {
+        type: "K2",
+        task: "Solve this K2 patristocrat by Adam R. Gwizdala (keyword GARBAGE).",
+        text: "OJUJP MAMEG IZNUJ PMGFE DGWOM WNBXW ROBGU FFPNG UJPAJ MWFEO OFGXE OOBGI OBGUF FOBMJ SUJPJ PO",
+        frequencies: [2, 5, 0, 1, 4, 7, 8, 0, 2, 8, 0, 0, 6, 3, 10, 6, 0, 1, 1, 0, 6, 0, 4, 2, 0, 1],
+        points: 550,
+        index: 6
+      },
+      {
+        type: "Hill",
+        task: "Decode this Hill cipher using the keyword BOBTICKLE.",
+        matrices: "$\\begin{pmatrix}B & O & B\\\\T & I & C\\\\K & L & E\\end{pmatrix}=\\begin{pmatrix}1 & 14 & 1\\\\19 & 8 & 2\\\\10 & 11 & 4\\end{pmatrix}\\hspace{15pt} Decode\\begin{pmatrix}B & O & B\\\\T & I & C\\\\K & L & E\\end{pmatrix}^{-1}=\\begin{pmatrix}2 & 17 & 4\\\\20 & 4 & 19\\\\5 & 5 & 16\\end{pmatrix}$",
+        text: "MSCNJEGZKNWMGRQDQELKSGGPFBLHZWBSAURQ",
+        points: 300,
+        index: 7
+      },
+      {
+        type: "Patristocrat",
+        task: "Solve this quote by Jim Davis, the creator of Garfield (edited for clarity).",
+        text: "QPXKW VUCKE QAWAC EHOXC YAXRR JQEEJ NOHQO OXCQU NRJQE OXCNQ E",
+        frequencies: [3, 0, 5, 0, 6, 0, 0, 2, 0, 3, 2, 0, 0, 3, 5, 1, 7, 3, 0, 0, 2, 1, 2, 5, 1, 0],
+        points: 550,
+        index: 8
+      },
+      {
+        type: "Vigenere",
+        task: "Decrypt this Vigenere cipher using a key of BLAKE.",
+        text: "IP WRS EPSSVFD BEX EZEC RPE AMX, CCEOHT AECXJWEXGF.",
+        points: 250,
+        index: 9
+      },
+      {
+        type: "Baconian",
+        task: "Solve this baconian cipher given that the last two letters are LY.",
+        text: "AEBCDIFJGHKLQRSTYMNZAOBCDIPUJKLQRSTVYZWABXCDIJEFKGLHMQRSNTYZOABCPUDIVJKLWXEQRFSTYZGHMANBCDIJOPKLQUVWRSXTYEZABFGCDHIJMKLNQORSTPYZUABCVDIJWXKELFGQRSTHYZABCMDIJKLQRNOSTYZPAUBVCWDXIEFJ",
+        points: 350,
+        index: 10
+      },
+      {
+        type: "Baconian",
+        task: "Solve this Baconian cipher by Benjamin Rush.",
+        text: "`+3($`_3$`3$`3+$`(3$_`3$`+3$(`_3+($_`+3$`(3$`_3$+`3$(_+`(_3+($`_+(3$_`+3$(_`+3$`(3$`3_$`+3($`_+3$(`3_$+`3$(_`+(3$_+`(3_$`3$+(`3$`_3$+`3$(_`3$+(`_3$`3+$(`_3$`+3$(`3$_+`3$(`_3$`3+($`3$_+`(3$_`3+($_+`3(_+$`3(",
+        points: 300,
+        index: 11
+      },
+      {
+        type: "RSA",
+        task: "Brandon and Rachel are accountants for a very large bank, and have started a friendship. They communicate via email, because they live thousands of miles apart. Rachel gets curious and asks Brandon the year that they were born. Brandon doesn’t mind telling Rachel, but they know that the bank monitors all employee emails, and is afraid of being the victim of age discrimination. Therefore, Rachel suggests that they use RSA, and they provides their public key: (321719, 65705). Brandon replies with the ciphertext 43124. Rachel’s private key is 273593. In what year was Brandon born?",
+        text: "Enter the answer",
+        points: 450,
+        index: 12
+      },
+      {
+        type: "Morbit",
+        task: "A quote has been encoded using the Morbit Cipher for you to decode. You are told that 9=–●, 1=●●, 2=×–, 3=●×, 5=××, 8=––.",
+        text: "463271312396767134783492467931743324386971731361373956434238474734173698586195873921",
+        points: 200,
+        index: 13
+      },
+      {
+        type: "Pollux",
+        task: "A quote has been encoded using the Pollux Cipher for you to decode. You are told that the quote ends with OUBY.",
+        text: "102111211121102882100128211208820121112210218112101120802100228211112122011121211120221120122101121121181212202000221881218211121112281882808211822811128188",
+        points: 200,
+        index: 14
+      },
+      {
+        type: "Aristocrat",
+        task: "Solve this aristocrat by William Butler Yeats.",
+        text: "YWW DWBE M CMOFZSZOV OMB GMAV M CYWBV WS YLV LVMFY. W! ILVB GMJ ZY CTSSZOV",
+        frequencies: [1, 4, 3, 1, 1, 2, 2, 0, 1, 1, 0, 3, 7, 0, 4, 0, 0, 0, 4, 1, 0, 7, 6, 0, 5, 4],
+        points: 300,
+        index: 15
+      },
+      {
+        type: "K1",
+        task: "Solve this K1 aristocrat.",
+        text: "XGMZH KW MWRVKIS KI HNXAJ HI IMWIKNVM HI NHIMNHVV KW KJHVKHW.",
+        frequencies: [1, 0, 0, 0, 0, 0, 1, 8, 7, 2, 7, 0, 5, 4, 0, 0, 0, 1, 1, 0, 0, 5, 5, 2, 0, 1],
+        points: 300,
+        index: 16
+      },
+      {
+        type: "Xenocrypt",
+        task: "Solve this quote by Joseph Addison that has been translated to Spanish.",
+        text: "IWFJQJ YWV YÑ CWQUÑM NJQ AVEWQ FFAMJ UA YÑQFJV KHA UA DAQAXWV, P TQWMDWYAMEA FAV UJP TQHEJV NWQW VHV DWMEJV.",
+        frequencies: [10, 0, 1, 3, 4, 5, 0, 3, 1, 8, 1, 0, 5, 2, 3, 0, 2, 9, 0, 0, 2, 4, 9, 10, 1, 4, 0],
+        points: 600,
+        index: 17
+      },
+      {
+        type: "Affine",
+        task: "Solve this affine cipher given that the first letter is M and the last is T.",
+        text: "FN WXOGRE OXTBGO FR OP DPEV - GR MLM KPO ORXHG FR OP APYR LO",
+        points: 250,
+        index: 18
+      },
+      {
+        type: "Patristocrat",
+        task: "Solve this patristocrat which contains the word \"GAIN\".",
+        text: "UDRQS VUBQU FBSZB SHFDL UBBQC SVRSU WQKNY VYZYH HQLKU DXDHY YCYLK UBSVR YXHY",
+        frequencies: [0, 6, 2, 4, 0, 2, 0, 5, 0, 0, 3, 3, 0, 1, 0, 0, 5, 3, 6, 0, 7, 4, 1, 2, 8, 2],
+        points: 600,
+        index: 19
+      },
+      {
+        type: "RSA",
+        task: "Special Agent, John, has the following RSA public key: n = 126869 e = 26609. Unfortunately for them, a quantum computer has successfully factored their n: 126869 = 293 * 433. Compute the value of their private key.",
+        text: "Enter the computed private key:",
+        points: 350,
+        index: 20
+      }
+    ],
+    example: [
+      {
+        type: "K1",
+        task: "Decrypt the following K1 aristocrat, which is the ending of a famous song’s music video (yet never occurred in the actual song).",
+        text: "JKY YRK USQRY HLFK NKPLMK YRK PSQRY'X BLU, XLFK FSQRY MZU GQGSUXY YRK YKXY.",
+        points: 250,
+        frequencies: [0, 1, 0, 0, 0, 3, 2, 1, 0, 1, 9, 4, 2, 1, 0, 2, 4, 6, 4, 0, 4, 0, 0, 4, 10, 1],
+        index: 1
+      },
+      {
+        type: "Baconian",
+        task : "Decrypt the following, encrypted with a Baconian cipher and an unknown assignment scheme.",
+        text: "aGbcd efabc dHeIJ KfaLM bcNde Ofabc PdGHe IfaJb cKdef Labcd efMab cdeNO PfGab cdHIJ efKab cLMde NfOab Pcdef aGbcd HefIa bJcde fKLab cdMNe",
+        points: 200,
+        index: 2
+      }
+    ]
+  };
 
-  let example = [
-    {
-      type: "K1",
-      task: "Decrypt the following K1 aristocrat, which is the ending of a famous song’s music video (yet never occurred in the actual song).",
-      text: "JKY YRK USQRY HLFK NKPLMK YRK PSQRY'X BLU, XLFK FSQRY MZU GQGSUXY YRK YKXY.",
-      points: 250,
-      frequencies: [0, 1, 0, 0, 0, 3, 2, 1, 0, 1, 9, 4, 2, 1, 0, 2, 4, 6, 4, 0, 4, 0, 0, 4, 10, 1],
-      index: 1
-    },
-    {
-      type: "Baconian",
-      task : "Decrypt the following, encrypted with a Baconian cipher and an unknown assignment scheme.",
-      text: "aGbcd efabc dHeIJ KfaLM bcNde Ofabc PdGHe IfaJb cKdef Labcd efMab cdeNO PfGab cdHIJ efKab cLMde NfOab Pcdef aGbcd HefIa bJcde fKLab cdMNe",
-      points: 200,
-      index: 2
-    }
-  ];
 
-  let questions = example;
-
-  let test = "example";
 
 
   // Setting Questions
-  for (let i = 0; i < questions.length; i++) {
-    db.collection(test + "_questions").doc("question_" + (i + 1)).set(questions[i])
-      .then(function() {
-        console.log("Document " + test + "_questions/question_" + (i + 1) + " successfully written!");
-      })
-      .catch(function(error) {
-        console.error("Error writing document " + test + "_questions/question_" + (i + 1) + ": ", error);
-      });
+  function settingQuestions(test, questions) {
+    for (let i = 0; i < questions.length; i++) {
+      db.collection(test + "_questions").doc("question_" + (i + 1)).set(questions[i])
+        .then(function() {
+          console.log("Document " + test + "_questions/question_" + (i + 1) + " successfully written!");
+        })
+        .catch(function(error) {
+          console.error("Error writing document " + test + "_questions/question_" + (i + 1) + ": ", error);
+        });
 
+    }
   }
 
 
 
   // Setting Blank Responses
-  if (confirm("All questions have been written, would you like to proceed with setting blank responses? Warning: all current responses will be lost.")) {
+  function settingResponses(test, questions) {
+    if (confirm("All questions have been written, would you like to proceed with setting blank responses? Warning: all current responses will be lost.")) {
 
-    let replacements = "";
-    for (let i = 0; i < 26; i++) {
-      replacements += " ";
-    }
+      let replacements = "";
+      for (let i = 0; i < 26; i++) {
+        replacements += " ";
+      }
 
-    let xenoReplacements = replacements + " ";
+      let xenoReplacements = replacements + " ";
 
-    for (let i = 0; i < questions.length; i++) {
+      for (let i = 0; i < questions.length; i++) {
 
-      let text = "";
+        let text = "";
 
-      for (let j = 0; j < questions[i].text.length; j++) {
-        if (questions[i].text.charAt(j).match("[A-Za-z]")) {
-          text += " ";
+        for (let j = 0; j < questions[i].text.length; j++) {
+          if (questions[i].text.charAt(j).match("[A-Za-z]")) {
+            text += " ";
+          }
+        }
+
+        for (let group = 1; group <= 2; group++) {
+          db.collection("responses").doc("group_" + group).collection(test + "_responses").doc("question_" + (i + 1)).set({
+            text: (questions[i].type === "Baconian" || questions[i].type === "Morbit" || questions[i].type === "Pollux" || questions[i].type === "RSA") ? "" : text,
+            replacements: (questions[i].type === "Timed" || questions[i].type === "Aristocrat" || questions[i].type === "K2" || questions[i].type === "Patristocrat" || questions[i].type === "K1" || questions[i].type === "Xenocrypt") ? ((questions[i].type === "Xenocrypt") ? xenoReplacements : replacements) : null,
+            index: i + 1
+          })
+            .then(function() {
+              console.log("Document responses/group_" + group + "/" + test + "_responses/question_" + (i + 1) + " successfully written!");
+            })
+            .catch(function(error) {
+              console.error("Error writing document responses/group_" + group + "/" + test + "_responses/question_" + (i + 1) + ": ", error);
+            });
+
         }
       }
 
-      for (let group = 1; group <= 2; group++) {
-        db.collection("responses").doc("group_" + group).collection(test + "_responses").doc("question_" + (i + 1)).set({
+
+    }
+  }
+
+  function settingSampleResponses(test, questions) {
+    if (confirm("Would you like to continue with setting the sample responses for the " + test + " test")) {
+
+      let replacements = "";
+      for (let i = 0; i < 26; i++) {
+        replacements += " ";
+      }
+
+      let xenoReplacements = replacements + " ";
+
+      for (let i = 0; i < questions.length; i++) {
+
+        let text = "";
+
+        for (let j = 0; j < questions[i].text.length; j++) {
+          if (questions[i].text.charAt(j).match("[A-Za-z]")) {
+            text += " ";
+          }
+        }
+
+        db.collection(test + "_responses").doc("sample").collection("responses").doc(i + "").set({
           text: (questions[i].type === "Baconian" || questions[i].type === "Morbit" || questions[i].type === "Pollux" || questions[i].type === "RSA") ? "" : text,
-          replacements: (questions[i].type === "Timed" || questions[i].type === "Aristocrat" || questions[i].type === "K2" || questions[i].type === "Patristocrat" || questions[i].type === "K1" || questions[i].type === "Xenocrypt") ? ((questions[i].type === "Xenocrypt") ? xenoReplacements : replacements) : null,
-          index: i + 1
+          replacements: (questions[i].type === "Timed" || questions[i].type === "Aristocrat" || questions[i].type === "K2" || questions[i].type === "Patristocrat" || questions[i].type === "K1" || questions[i].type === "Xenocrypt") ? ((questions[i].type === "Xenocrypt") ? xenoReplacements : replacements) : null
         })
           .then(function() {
-            console.log("Document responses/group_" + group + "/" + test + "_responses/question_" + (i + 1) + " successfully written!");
+            console.log("Document " + test + "_responses/sample/responses/question_" + i + " successfully written!");
           })
           .catch(function(error) {
-            console.error("Error writing document responses/group_" + group + "/" + test + "_responses/question_" + (i + 1) + ": ", error);
+            console.log("Error writing document " + test + "_responses/sample/responses/question_" + i + ": ", error);
           });
 
+
       }
+
+
     }
-
-
   }
+
+  settingSampleResponses("masonTryouts", questions.masonTryouts);
+
+
+
+  // Getting Points
+  function gettingPoints(test) {
+    for (let group = 1; group <= 2; group++) {
+      db.collection("responses").doc("group_" + group).collection(test + "_responses").get().then(function(querySnapshot) {
+
+        let totalPoints = 0;
+
+        querySnapshot.forEach(function(doc) {
+          if (doc.data().points) {
+            totalPoints += doc.data().points;
+          }
+        });
+
+        console.log("Group " + group + " points: " + totalPoints);
+
+      }).catch(function(error) {
+        console.error("Error getting documents responses/group_" + group + "/" + test + "_responses: ", error);
+      });
+    }
+  }
+
 
 </script>
 </body>
