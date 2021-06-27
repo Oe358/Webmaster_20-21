@@ -1,35 +1,35 @@
 <template>
   <div class = "container-fluid" id = "play-menu">
     <div class = "flex" id = "links-container">
-      <router-link to = "/" class = "link">
+      <router-link to = "/" class = "router-link">
         <div class = "img logo"></div>
         <div class = "text">Home</div>
       </router-link>
-      <router-link to = "/play" class = "link">
+      <router-link to = "/play" class = "router-link">
         <div class = "img problem">
           <i class = "fa fa-cubes" aria-hidden = "true"></i>
         </div>
         <div class = "text">Play</div>
       </router-link>
-      <router-link to = "/review" class = "link">
+      <router-link to = "/review" class = "router-link">
         <div class = "img review">
           <i class = "fa fa-retweet" aria-hidden = "true"></i>
         </div>
         <div class = "text">Review</div>
       </router-link>
-      <router-link to = "/setup" class = "link">
+      <router-link to = "/setup" class = "router-link">
         <div class = "img setup">
           <i class = "fa fa-sliders" aria-hidden = "true"></i>
         </div>
         <div class = "text">Setup</div>
       </router-link>
-      <router-link to = "/submit" id = "submit-link" class = "link" v-if = "$store.getters.Contributor">
+      <router-link to = "/submit" id = "submit-link" class = "router-link" v-if = "$store.getters.Contributor">
         <div class = "img setup">
           <i class = "fa fa-database" aria-hidden = "true" style = "color: #ff845d;"></i>
         </div>
         <div class = "text" style = "color: #ff845d;">Submit</div>
       </router-link>
-      <router-link to = "/help" class = "link">
+      <router-link to = "/help" class = "router-link">
         <div class = "img help">
           <i class = "fa fa-question" aria-hidden = "true"></i>
         </div>
@@ -37,7 +37,7 @@
       </router-link>
     </div>
 
-    <a href = "https://physicsgenie.ga/" id = "back-home" class = "link">
+    <a href = "https://physicsgenie.ga/" id = "back-home" class = "router-link">
       <i class = "fa fa-long-arrow-left" aria-hidden = "true"></i>
       <div class = "text">Back to Site</div>
     </a>
@@ -78,7 +78,7 @@
     align-items: flex-start;
   }
 
-  #play-menu .flex > .link {
+  #play-menu .flex > .router-link {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -86,15 +86,15 @@
     width: 100%;
   }
 
-  #play-menu .flex > .link:hover {
+  #play-menu .flex > .router-link:hover {
     background: #111521;
   }
 
-  .link {
+  .router-link {
     text-decoration: none !important;
   }
 
-  #play-menu .flex > .link:nth-child(1) {
+  #play-menu .flex > .router-link:nth-child(1) {
     margin-bottom: 30px;
   }
 

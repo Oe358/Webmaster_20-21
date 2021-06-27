@@ -1,3 +1,4 @@
+/* eslint-disable */
 <template>
   <div class = "container">
     <Menu />
@@ -13,11 +14,11 @@
     <div class = "content">
       <h1>Welcome Problem Submitter!</h1>
       <div class = "divider"></div>
-      <button class = "button orange">Submit a Problem</button>
+      <button class = "button orange" v-on:click = "navigate('submit-portal')">Submit a Problem</button>
       <div id = "past-problems">
         <div v-for = "problem in problems" class = "problem">
           <div class = "buttons">
-            <button class = "button orange"><i class = "fa fa-pencil"></i>Edit</button>
+            <button class = "button orange" v-on:click = "edit(problem.problemID)"><i class = "fa fa-pencil"></i>Edit</button>
             <button class = "button" v-on:click = "previewProblem(problem)"><i class = "fa fa-eye"></i>Preview</button>
           </div>
           <div class = "topic-focus"><span class = "topic">{{ problem.topicName }}</span>><span class = "focus">{{ problem.mainFocusName }}</span></div>
@@ -40,12 +41,7 @@
   import Menu from "../components/Menu";
   import User from "../components/User";
   import Problem from "../components/Problem";
-  import axios from 'axios';
   import {VueMathjax} from 'vue-mathjax'
-
-  function escString(string) {
-    return string.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-  }
 
   export default {
     name: "Submit",
@@ -57,83 +53,27 @@
     },
     data() {
       return {
-        problems: [],
+        problems: this.$store.getters.SubmittedProblems,
         problemPreview: null,
-        submitData: null,
+        submitData: this.$store.getters.ProblemMetaData,
         windowHeight: window.innerHeight
       }
     },
     methods: {
-      async getProblems() {
-        let self = this;
-        await axios.get('wp-json/physics_genie/contributor-problems', {headers: {'Authorization': 'Bearer' + self.$store.getters.Token}}).then((response) => {
-          self.problems = [];
-          response.data.forEach(function(problem) {
-            let problemTextShortened = escString(problem.problem_text);
-
-            if (problemTextShortened.length > 200) {
-              problemTextShortened = problemTextShortened.slice(0, 200);
-              if ((problemTextShortened.match(/\$/g)||[]).length % 2 === 1) {
-                problemTextShortened = problemTextShortened.slice(0, problemTextShortened.lastIndexOf("$"));
-              }
-
-              problemTextShortened += " ...";
-            }
-
-            let sourceName = self.submitData.sources.filter(function(source) {return source.source_id === problem.source})[0].source;
-            let topicName = self.submitData.topics.filter(function(topic) {return topic.topic === problem.topic})[0].name;
-            let mainFocusName = self.submitData.focuses.filter(function(focus) {return focus.focus === problem.main_focus})[0].name;
-
-            self.problems.push({
-              problemID: problem.problem_id,
-              problemText: escString(problem.problem_text),
-              problemTextShortened: problemTextShortened,
-              diagram: problem.diagram,
-              answer: problem.answer,
-              solution: problem.solution,
-              hintOne: problem.hint_one,
-              hintTwo: problem.hint_two,
-              source: problem.source,
-              sourceName: sourceName,
-              numberInSource: problem.number_in_source,
-              submitter: problem.submitter,
-              difficulty: problem.difficulty,
-              calculus: problem.calculus,
-              topic: problem.topic,
-              topicName: topicName,
-              mainFocus: problem.main_focus,
-              mainFocusName: mainFocusName,
-              otherFoci: problem.other_foci,
-              dateAdded: problem.date_added
-            });
-          });
-
-          console.log(self.problems);
-        });
-      },
-      async getSubmitData() {
-        let response = await axios.get('wp-json/physics_genie/submit-data');
-        this.submitData = response.data;
-      },
-      previewProblem(problem) {
+      previewProblem: function(problem) {
         this.problemPreview = problem;
-        this.problemPreview.topic = this.problemPreview.topicName;
-        this.problemPreview.mainFocus = this.problemPreview.mainFocusName;
-        if (this.problemPreview.otherFoci === null) {
-          this.problemPreview.otherFoci = [];
-        } else {
-          let foci = [];
-          this.problemPreview.otherFoci.split("").forEach(function(otherFocus) {
-            foci.push(self.submitData.focuses.filter(function(focus) {return focus.focus === otherFocus})[0].name);
-          });
-          this.problemPreview.otherFoci = foci;
-        }
+      },
+      edit: function(problemID) {
+        window.scrollTo({top: 0, left: 0});
+        this.$router.push("/submit-portal/" + problemID);
+      },
+      navigate: function(place) {
+        this.$router.push("/" + place);
       }
     },
-    mounted() {
-      let self = this;
-      this.getSubmitData().then(self.getProblems());
-    },
+    created() {
+
+    }
   }
 </script>
 
@@ -192,6 +132,7 @@
     border: 1px solid #ff3f49;
     transition: transform .3s ease;
     display: flex;
+    padding: 0 7px;
     height: 35px;
     justify-content: center;
     align-items: center;
@@ -217,11 +158,15 @@
   }
 
   .content {
-    width: calc(100% - 100px);
-    margin-left: 100px;
+    width: calc(90% - 100px);
+    border-top-left-radius: 50px;
+    border-top-right-radius: 50px;
+    position: relative;
+    margin: 100px 0 -50px calc(5% + 100px);
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: white;
   }
 
   h1 {
@@ -231,6 +176,7 @@
     font-weight: 500;
     margin-top: 100px;
     position: relative;
+    background: white;
   }
 
   .divider {
@@ -241,7 +187,7 @@
   }
 
   #past-problems {
-    width: 90%;
+    width: 95%;
     margin-top: 20px;
     display: flex;
     flex-wrap: wrap;
@@ -256,6 +202,7 @@
     margin: 15px;
     width: 320px;
     background: white;
+    border-radius: 25px;
     position: relative;
     top: 0;
     transition: box-shadow .3s ease, border .3s ease, top .3s ease;
@@ -279,6 +226,7 @@
     justify-content: center;
     align-items: center;
     opacity: 0;
+    border-radius: 25px;
     z-index: -1;
     transition: opacity .3s ease, z-index 0s ease .3s;
   }

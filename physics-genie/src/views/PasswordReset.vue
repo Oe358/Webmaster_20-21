@@ -1,7 +1,7 @@
 <template>
   <div class = "container" v-bind:style = "{height: $store.getters.WindowHeight + 'px'}">
     <div class = "content">
-      <h2>Register</h2>
+      <h2>Password Reset Form</h2>
       <div id = "errors" v-if = "error !== null">
         <p v-if = "error !== null" class = "error">{{ error }}</p>
       </div>
@@ -10,15 +10,6 @@
           <label for="email">Email:</label>
           <input type="text" name="email" id = "email" v-model="form.email">
         </div>
-        <div>
-          <label for="username">Username:</label>
-          <input type="text" name="username" id = "username" v-model="form.username">
-        </div>
-        <div>
-          <label for="password">Password:</label>
-          <input type="password" name="password" id = "password" v-model="form.password">
-        </div>
-        <button type="submit"> Submit</button>
       </form>
     </div>
   </div>
@@ -29,8 +20,7 @@
   import { mapActions } from "vuex";
 
   export default {
-    name: "Register",
-    components: {},
+    name: "PasswordReset",
     data() {
       return {
         form: {
@@ -42,10 +32,10 @@
       };
     },
     methods: {
-      ...mapActions(["Register"]),
+      ...mapActions(["PasswordReset"]),
       async submit() {
         try {
-          await this.Register(this.form);
+          await this.PasswordReset(this.form);
           this.$router.push("/");
           this.error = null;
         } catch (error) {
@@ -155,6 +145,5 @@
     color: white;
     background: #285380;
   }
-
 
 </style>

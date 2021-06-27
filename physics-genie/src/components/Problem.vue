@@ -1,16 +1,19 @@
+/* eslint-disable *
 <template>
   <div id = "problem">
     <div id = "progress-bars">
       <div class = "topic">
-        <h4>{{ problem.topic }}</h4>
+        <h4>{{ problem.topicName }}</h4>
         <div class = "bar">
-          <div class = "curr-progress"></div>
+          <!--<div class = "curr-progress" v-bind:style = "{width: ((userStats.xp-Math.pow(Math.floor(Math.sqrt(userStats.xp+9)), 2)+9)/(2*Math.floor(Math.sqrt(userStats.xp+9))+1)) + '%'}"></div>-->
+          <div class = "curr-progress" v-bind:style = "{width: userStats.xp + '%'}"></div>
+          <!--<div class = "curr-progress" v-bind:style = "{width: 50 + '%'}"></div>-->
           <div class = "advancement-progress">+10</div>
         </div>
         <div class = "badge"><div class = "img"></div></div>
       </div>
       <div class = "focus">
-        <h4>{{ problem.mainFocus }}</h4>
+        <h4>{{ problem.mainFocusName }}</h4>
         <div class = "bar">
           <div class = "curr-progress"></div>
           <div class = "advancement-progress">+10</div>
@@ -18,76 +21,193 @@
         <div class = "badge"><div class = "img"></div></div>
       </div>
     </div>
-    <div class = "content">
+    <div class = "content" v-bind:style = "(result === 'correct') ? 'border: 1px solid rgb(5, 178, 0)' : ((result === 'incorrect' || (result === '' && pastAnswers.length > 0)) ? 'border: 1px solid #ff6469' : 'border: 1px solid rgba(17, 21, 33, 0.4)')">
       <div id = "already-entered" class = "error">You have already tried this response</div>
       <div id = "blank" class = "error">Please enter a response</div>
       <div id = "add-saved" class = "error">Problem added to saved</div>
       <div id = "remove-saved" class = "error">Problem remove from saved</div>
-      <div id = "result" style = "display: none">
-        <div id = "correct" style = "display: none"><i class = "fa fa-check"></i>Correct</div>
-        <div id = "incorrect" style = "display: none"><i class = "fa fa-times"></i>Incorrect</div>
-        <div id = "gave-up" style = "display: none"><i class = "fa fa-minus-circle"></i>You Gave Up</div>
+      <div id = "result" v-if = "result !== '' || pastAnswers.length > 0">
+        <div id = "correct" v-if = "result === 'correct'"><i class = "fa fa-check"></i>Correct</div>
+        <div id = "incorrect" v-if = "result === 'incorrect' || (result === '' && pastAnswers.length > 0)"><i class = "fa fa-times"></i>Incorrect</div>
+        <div id = "gave-up" v-if = "result === 'gave up'"><i class = "fa fa-minus-circle"></i>You Gave Up</div>
       </div>
       <div id = "summary">
         <div class = "difficulty">
           <span>Difficulty:</span>
-          <i class = "fa fa-star-o one" style = "margin-left: 5px;"></i>
-          <i class = "fa fa-star-o two"></i>
-          <i class = "fa fa-star-o three"></i>
-          <i class = "fa fa-star-o four"></i>
-          <i class = "fa fa-star-o five"></i>
+          <i v-for = "i in 5" v-bind:key = "i" v-bind:class = "(i <= problem.difficulty) ? 'fa-star' : 'fa-star-o'" v-bind:style = "(i === 1) ? 'margin-left: 5px' : ''" class = "fa"></i>
         </div>
-        <div class = "main-focus"><span class = "topic">{{ problem.topic }}</span>><span class = "focus">{{ problem.mainFocus }}</span></div>
-        <div class = "secondary-focus" v-if = "problem.otherFoci.length > 0">
-          Also Includes: <span v-for = "focus in problem.otherFoci">{{ focus }}</span>
-        </div>
+        <div class = "main-focus"><span class = "topic">{{ problem.topicName }}</span>><span class = "focus">{{ problem.mainFocusName }}</span></div>
+        <div class = "secondary-focus" v-if = "problem.otherFoci.length > 0" v-bind:title = "otherFociList">{{ otherFociList.length > 40 ? otherFociList.substring(0, 40) + "..." : otherFociList }}</div>
       </div>
       <p id = "problem-text"><vue-mathjax :formula = "problem.problemText" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></p>
-      <div id = "diagram"></div>
-      <div id = "hints">
-        <p class = "hint one" style = "display: none"></p>
-        <p class = "hint two" style = "display: none"></p>
+      <div id = "diagram" v-if = "problem.diagram !== null" v-html = "problem.diagram"></div>
+      <div id = "hints" v-if = "result === ''">
+        <p class = "hint one" v-if = "pastAnswers.length >= 1">Hint: {{ problem.hintOne }}</p>
+        <p class = "hint one" v-if = "pastAnswers.length >= 2 && problem.hintTwo !== null">Hint: {{ problem.hintTwo }}</p>
       </div>
-      <div id = "previous-answers">
-        <span class = "previous-answer one"></span>
-        <span class = "previous-answer two"></span>
+      <div id = "previous-answers" v-if = "pastAnswers.length >= 1 && result === ''">Past Answers:
+        <span class = "previous-answer" v-bind:key = "answer" v-for = "(answer, index) in pastAnswers"><vue-mathjax v-bind:formula = "'$' + Mathml2latex.convert(answer) + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax>{{ (index === pastAnswers.length - 1 ? '' : ', ') }}</span>
       </div>
-      <div class = "flex row problem">
-        <div style = "width: 500px" id = "studentAnswer"><span></span></div>
+      <div class = "flex row problem" v-if = "result === ''">
+        <div style = "width: 500px" id = "studentAnswer">
+          <FormulaEditor v-bind:text = "currAnswer" v-on:update = "updateAnswer" />
+        </div>
         <div class = "buttons">
-          <button id = "submit-pr" class = "button blue top">Submit</button>
-          <button id = "give-up" class = "button bottom">Give Up</button>
+          <button id = "submit-pr" class = "button blue top" v-on:click = "onSubmit">Submit</button>
+          <button id = "give-up" class = "button bottom red" v-on:click = "gaveUp">Give Up</button>
+          <button id = "skip" class = "button bottom" v-on:click = "skip">Skip</button>
         </div>
       </div>
 
-      <div id = "solution" style = "display: none">
-        <div id = "student-answers"></div>
-        <p style = "display: none" id = "answer">Answer: <span class = "correct"></span></p>
-        <p id = "solution-text"></p>
+      <div id = "solution" v-if = "result !== ''">
+        <div id = "student-answers">
+          <div v-for = "(answer, index) in pastAnswers" v-bind:key = "answer" v-bind:class = "(result === 'correct' && index === pastAnswers.length - 1) ? 'correct' : 'incorrect'">{{ ordinalNumbers[index] }} Response: <vue-mathjax v-bind:formula = "'$' + Mathml2latex.convert(answer) + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></div>
+        </div>
+        <div id = "answer" v-if = "result !== 'correct'">Answer: <vue-mathjax class = "correct"  v-bind:formula = "'$' + Mathml2latex.convert(problem.answer) + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></div>
+        <div id = "solution-text">
+          <vue-mathjax v-bind:formula = "problem.solution" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax>
+          <div id = "solution-diagram" v-if = "problem.solutionDiagram !== null" v-html = "problem.solutionDiagram"></div>
+        </div>
       </div>
-      <div class = "buttons">
-        <button id = "save" class = "blue top" style = "display: none"><i class = "fa fa-plus"></i>Save</button>
-        <button id = "report" class = "bottom" style = "display: none"><i class = "fa fa-flag"></i>Report an Error</button>
+      <div class = "solution buttons" v-if = "result !== ''">
+        <!--<button id = "save" class = "button blue"><i class = "fa fa-plus"></i>Save</button>-->
+        <button id = "report" class = "button"><i class = "fa fa-flag"></i>Report an Error</button>
       </div>
-      <button id = "next" style = "display: none">Next<div class = "arrow"><div></div><div></div><div></div></div></button>
+      <button id = "next" v-on:click = "next" v-if = "result !== ''">Next<div class = "arrow"><div></div><div></div><div></div></div></button>
     </div>
   </div>
 </template>
 
 <script>
 
+  import axios from 'axios';
   import {VueMathjax} from 'vue-mathjax'
+  import FormulaEditor from "./FormulaEditor";
+  import { mapGetters } from "vuex";
+  import Mathml2latex from 'mathml-to-latex';
 
   export default {
     name: "Problem",
     components: {
-      'vue-mathjax': VueMathjax
+      'vue-mathjax': VueMathjax,
+      FormulaEditor
     },
     props: {
       problem: {
-        type: Object,
-        required: true,
+        type: Object
       }
+    },
+    computed: {
+      ...mapGetters({
+        pastAnswers: 'PastAnswers',
+        result: 'Result',
+        userStats: 'UserStats'
+      }),
+      currAnswer: {
+        get() {
+          return this.$store.getters.CurrAnswer;
+        },
+        set(value) {
+          this.$store.commit('setCurrAnswer', value);
+        }
+      },
+      otherFociList: function() {
+        if (this.problem.otherFoci.length === 0) {
+          return null;
+        }
+        let string = "Also Includes: ";
+        for (let i = 0; i < this.problem.otherFoci.length; i++) {
+          string += this.problem.otherFoci[i];
+          if (i === 0 && this.problem.otherFoci.length === 2) {
+            string += " and ";
+          } else if (i < this.problem.otherFoci.length - 2 && this.problem.otherFoci.length > 2) {
+            string += ", ";
+          } else if (i === this.problem.otherFoci.length - 2) {
+            string += ", and ";
+          }
+        }
+        return string;
+      }
+    },
+    watch: {
+      pastAnswers: {
+        handler() {
+          this.$store.commit('setPastAnswers', this.pastAnswers);
+        },
+        deep: true
+      }
+    },
+    data() {
+      return {
+        submitData: this.$store.getters.ProblemMetaData,
+        ordinalNumbers: ["First", "Second", "Third", "Fourth", "Fifth"],
+        Mathml2latex: Mathml2latex,
+        wrong: false
+      }
+    },
+    methods: {
+      onSubmit: function() {
+        let self = this;
+        console.log(self.currAnswer.replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
+        console.log(self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
+        axios.post("wp-json/physics_genie/external-request", {
+          method: "POST",
+          url: "www.wiris.net/demo/editor/evaluate?mml=" + self.currAnswer.replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
+        }).then((response) => {
+          let studentAnswer = parseFloat(response.data);
+          axios.post("wp-json/physics_genie/external-request", {
+            method: "POST",
+            url: "www.wiris.net/demo/editor/evaluate?mml=" + self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
+          }).then((res) => {
+            let actualAnswer = parseFloat(res.data);
+
+            if (self.currAnswer.replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") === self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") || (studentAnswer < actualAnswer * 1.05 && studentAnswer > actualAnswer * 0.95)) {
+              console.log("Correct");
+              self.correct();
+            } else {
+              console.log("Incorrect");
+              self.incorrect();
+            }
+
+          });
+        });
+      },
+      correct: function() {
+        this.$set(this.pastAnswers, this.pastAnswers.length, this.currAnswer);
+        this.currAnswer = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>";
+        this.$store.commit('setResult', "correct");
+        this.showResult();
+      },
+      incorrect: function() {
+        this.$set(this.pastAnswers, this.pastAnswers.length, this.currAnswer);
+        this.currAnswer = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>";
+        if (this.pastAnswers.length === 3) {
+          this.$store.commit('setResult', "incorrect");
+          this.showResult();
+        }
+      },
+      gaveUp: function() {
+        this.currAnswer = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>";
+        this.$store.commit('setResult', "gave up");
+        this.showResult();
+      },
+      skip: function() {
+
+      },
+      showResult: function() {
+        this.$store.dispatch('submitAttempt');
+      },
+      next: function() {
+        this.$store.commit('setPastAnswers', []);
+        this.$store.commit('setResult', "");
+        this.$store.dispatch('GetCurrProblem', {token: this.$store.getters.Token, submitData: this.$store.getters.ProblemMetaData});
+      },
+      updateAnswer: function(answer) {
+        this.currAnswer = answer;
+      }
+    },
+    mounted() {
+      // this.$store.commit('setPastAnswers', []);
     }
   }
 </script>
@@ -295,7 +415,7 @@
 
   .flex.problem .buttons {
     margin-left: 30px;
-    width: 190px;
+    width: 250px;
     display: flex;
     justify-content: space-around;
   }
@@ -303,11 +423,11 @@
   .hint {
     overflow: hidden;
     background: rgba(197, 210, 255, 0.6);
-    color: #285380;
+    color: rgba(40, 83, 128, 0.71);
     box-shadow: -0.1px 0 10px rgba(120, 120, 120, 0.5);
-    padding: 8px 15px;
-    margin-left: 30px;
-    margin-right: 85px;
+    padding: 12px 20px;
+    box-sizing: border-box;
+    margin: 20px 85px 20px 30px;
     font-size: 13px;
   }
 
@@ -315,6 +435,8 @@
     font-size: 11px;
     font-style: italic;
     margin-left: 30px;
+    position: relative;
+    top: -10px;
     color: #ff6469;
   }
 
@@ -352,7 +474,7 @@
     font-size: 35px;
     height: 100%;
     margin-left: 40px;
-    line-height: 100%;
+    line-height: 45px;
     vertical-align: middle;
     padding-top: 8px;
     margin-right: 15px;
@@ -363,9 +485,7 @@
     color: #ff6469;
     font-size: 12px;
     padding: 15px;
-    margin-left: 50px;
-    margin-right: 100px;
-    margin-bottom: 20px;
+    margin: 10px 100px 20px 50px;
     box-shadow: -0.1px 0 10px rgba(120, 120, 120, 0.5);
   }
 
@@ -379,6 +499,7 @@
     font-style: italic;
     font-size: 16px;
     margin-top: 15px;
+    color: green;
   }
 
   #answer .correct {
@@ -391,9 +512,13 @@
     padding: 15px;
   }
 
+  .solution.buttons {
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
   #save {
     margin-right: 10px;
-    margin-bottom: 35px;
   }
 
   #next {
@@ -408,6 +533,7 @@
     padding-right: 80px;
     padding-top: 8px;
     padding-bottom: 8px;
+    cursor: pointer;
     color: #111521;
     font-size: 16px;
     font-family: 'Montserrat', sans-serif;
@@ -418,7 +544,7 @@
 
   #next .arrow {
     position: absolute;
-    top: 10px;
+    top: 5px;
     right: 80px;
     width: 25px;
     height: 25px;

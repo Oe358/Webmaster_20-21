@@ -7,10 +7,10 @@
       <div class = "text">{{ user }}</div>
     </div>
     <div id = "user-menu">
-      <div class = "link" v-on:click = "navigate('setup')">
+      <div class = "link-button" v-on:click = "navigate('setup')">
         <div class = "text">Problem Setup</div>
       </div>
-      <div class = "link" v-on:click = "logOut">
+      <div class = "link-button" v-on:click = "logOut">
         <i class = "fa fa-power-off" aria-hidden = "true"></i>
         <div class = "text">Logout</div>
       </div>
@@ -19,12 +19,15 @@
 </template>
 
 <script>
+
+  import { mapGetters } from "vuex";
+
   export default {
     name: "User",
-    data() {
-      return {
-        user: this.$store.getters.StateUser
-      }
+    computed: {
+      ...mapGetters({
+        user: 'StateUser'
+      })
     },
     methods: {
       navigate: function(place) {
@@ -50,7 +53,7 @@
   }
 
   #user {
-    border-bottom: 2px solid rgb(29,34,41);
+    border-bottom: 2px solid var(--user-menu-color);
     position: relative;
     height: 50px;
     padding: 0 30px;
@@ -60,6 +63,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    color: var(--user-menu-color);
     transition: top .5s ease .2s;
   }
 
@@ -70,7 +74,7 @@
     left: 0;
     height: 0;
     width: 2px;
-    background: rgb(29, 34, 41);
+    background: var(--user-menu-color);
     transition: height .25s ease;
   }
 
@@ -81,14 +85,15 @@
     right: 0;
     height: 0;
     width: 2px;
-    background: rgb(29, 34, 41);
+    background: var(--user-menu-color);
     transition: height .25s ease;
   }
 
   #user .text {
     font-size: 15px;
     margin-left: 10px;
-    color: rgb(29, 34, 41);
+    /*color: rgb(29, 34, 41);*/
+    color: var(--user-menu-color);
     font-family: "Montserrat", sans-serif;
   }
 
@@ -101,7 +106,7 @@
     position: relative;
     opacity: 0;
     display: flex;
-    border-top: 7px solid white;
+    border-top: 7px solid transparent;
     cursor: pointer;
     flex-direction: column;
     justify-content: center;
@@ -123,24 +128,26 @@
     transition: top .25s ease, opacity .25s ease;
   }
 
-  #user-menu .link {
-    border: 2px solid #111521;
+  #user-menu .link-button {
+    /*border: 2px solid #111521;*/
+    border: 2px solid var(--user-menu-color);
     height: 45px;
     display: flex;
     flex-direction: row;
     align-items: center;
     padding-left: 20px;
     margin-bottom: 5px;
-    background: white;
+    background: none;
     transition: background .25s ease;
   }
 
-  #user-menu .link:hover {
-    background: #111521;
+  #user-menu .link-button:hover {
+    /*background: #111521;*/
+    background: var(--user-menu-color);
   }
 
   #user-menu .fa {
-    color: rgb(29, 34, 41);
+    color: var(--user-menu-color);
     font-size: 15px;
     margin-top: 2px;
     margin-right: 8px;
@@ -148,7 +155,7 @@
   }
 
   #user-menu .text {
-    color: rgb(29, 34, 41);
+    color: var(--user-menu-color);
     font-family: "Montserrat", sans-serif;
     font-size: 15px;
     width: 100%;
@@ -156,11 +163,13 @@
     transition: color .25s ease;
   }
 
-  #user-menu .link:hover .fa {
+  #user-menu .link-button:hover .fa {
+    /*color: #111521;*/
     color: white;
   }
 
-  #user-menu .link:hover .text {
+  #user-menu .link-button:hover .text {
+    /*color: #111521;*/
     color: white;
   }
 
