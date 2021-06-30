@@ -15,6 +15,7 @@
         </div>
       </div>
       <div id = "settings" class = "box">
+        <mathlive-mathfield v-model = "formula" v-on:input = "keyStroke" v-bind:options = "{virtualKeyboardMode: 'manual'}"></mathlive-mathfield>
         <!--Topic: {{ submitData.topics.filter(function(topic) {return topic.topic === setup.topics[0]})[0].name }}-->
         <!--Focus: {{ submitData.focuses.filter(function(focus) {return focus.focus === setup.foci[0]})[0].name }}-->
       </div>
@@ -63,6 +64,7 @@
   import User from "../components/User";
   import RadialProgressBar from "vue-radial-progress/src/RadialProgressBar";
   import { mapGetters } from "vuex";
+  import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
 
   export default {
     name: "Home",
@@ -74,7 +76,8 @@
     data() {
       return {
         user: this.$store.getters.StateUser,
-        editingName: false
+        editingName: false,
+        formula: "",
       }
     },
     computed: {
@@ -99,6 +102,9 @@
       cancelNameEdit: function() {
         this.user = this.$store.getters.StateUser;
         this.editingName = false;
+      },
+      keyStroke: function() {
+        console.log(MathLive.convertLatexToMathMl(this.formula));
       }
     },
     updated() {

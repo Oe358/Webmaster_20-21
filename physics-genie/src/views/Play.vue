@@ -4,7 +4,7 @@
     <User />
     <div class = "content" v-bind:style = "{minHeight: windowHeight + 'px'}">
       <div class = "problem-div" ref = "problemDiv">
-        <Problem v-bind:problem = "problem" class = "problem" />
+        <Problem v-bind:problem = "problem" v-bind:official = "$route.params === null" class = "problem" />
       </div>
     </div>
   </div>
@@ -16,7 +16,6 @@
   import User from "../components/User";
   import Problem from "../components/Problem";
   import axios from 'axios';
-  import { mapGetters } from "vuex";
 
   export default {
     name: "Play",
@@ -27,45 +26,77 @@
     },
     data() {
       return {
-        windowHeight: window.innerHeight
+        windowHeight: window.innerHeight,
+        problemUnofficial: {
+          problemID: null,
+          problemText: "",
+          diagram: "",
+          answer: "",
+          solution: "",
+          hintOne: "",
+          hintTwo: null,
+          difficulty: null,
+          topic: "",
+          topicName: "",
+          mainFocus: "",
+          mainFocusName: "",
+          otherFoci: [],
+        }
       }
     },
     computed: {
-      ...mapGetters({
-        problem: 'CurrProblem'
-      })
+      problem: {
+        get() {
+          if (this.$route.params.problem === undefined) {
+            return this.$store.getters.CurrProblem;
+          } else {
+            return this.problemUnofficial;
+          }
+        },
+        set(value) {
+          if (this.$route.params.problem !== undefined) {
+            this.problemUnofficial = value;
+          }
+        }
+      }
     },
     methods: {
 
     },
     mounted() {
 
+      let self = this;
+
+      if (this.$route.params.problem !== undefined) {
+
+        axios.get('http://physicsgenie.ga/wp-json/physics_genie/problem/' + this.$route.params.problem, {headers: {'Authorization': 'Bearer ' + this.$store.getters.Token}}).then((response) => {
+          let foci = [];
+          if (response.data.other_foci !== null) {
+            response.data.other_foci.split("").forEach(function(otherFocus) {
+              foci.push(self.$store.getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === otherFocus})[0].name);
+            });
+          }
+          self.problem = {
+            problemID: response.data.problem_id,
+            problemText: response.data.problem_text.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            diagram: (response.data.diagram === null) ? null : response.data.diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            answer: response.data.answer.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            solution: response.data.solution.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            solutionDiagram: (response.data.solution_diagram === null) ? null : response.data.solution_diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            hintOne: response.data.hint_one.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            hintTwo: (response.data.hint_two === null) ? null : response.data.hint_two.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            difficulty: response.data.difficulty,
+            topic: response.data.topic,
+            topicName: self.$store.getters.ProblemMetaData.topics.filter(function(topic) {return topic.topic === response.data.topic})[0].name,
+            mainFocus: response.data.main_focus,
+            mainFocusName: self.$store.getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === response.data.main_focus})[0].name,
+            otherFoci: foci,
+          };
+        });
+      }
     },
     created() {
 
-      let self = this;
-
-      if (this.$route.params.problem) {
-        this.problem.problemID = this.$route.params.problem;
-
-        axios.get('https://physicsgenie.ga/wp-json/physics_genie/problem/' + this.problem.problemID).then((response) => {
-          console.log(response);
-          self.problem.problemText = response.data.problem_text.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-          self.problem.diagram = response.data.diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-          self.problem.answer = response.data.answer.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-          self.problem.solution = response.data.solution.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-          self.problem.hintOne = response.data.hint_one.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-          self.problem.hintTwo = response.data.hint_two.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
-          self.problem.difficulty = response.data.difficulty;
-          self.problem.topic = "Mechanics";
-          self.problem.mainFocus = response.data.main_focus;
-          response.data.other_foci.forEach(function(focus) {
-            self.problem.otherFoci.push(focus.name);
-          });
-        });
-      } else {
-        this.$store.dispatch('GetCurrProblem', {token: this.$store.getters.Token, submitData: this.$store.getters.ProblemMetaData});
-      }
     }
   }
 </script>

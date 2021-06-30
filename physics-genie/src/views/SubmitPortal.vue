@@ -10,7 +10,7 @@
     <div v-if = "problemPreview !== null" class = "preview" v-bind:style = "{height: windowHeight + 'px'}">
       <div class = "preview-container">
         <div class = "view-box">
-          <Problem v-bind:problem = "problemPreview" class = "problem" />
+          <Problem v-bind:problem = "problemPreview" v-bind:official = "false" class = "problem" />
         </div>
         <button v-on:click = "problemPreview = null" class = "exit"><span>Exit Preview</span><i class = "fa fa-times"></i></button>
       </div>
@@ -75,10 +75,9 @@
         <div class = "answer-div content">
           <h3>Answer</h3>
           <div class = "input-container">
-            <FormulaEditor v-bind:text = "currSubmission.answer" v-on:update = "updateAnswer" style = "overflow: hidden"/>
-            <!--<input type = "text" id = "answer" v-model = "currSubmission.answer">-->
+            <mathlive-mathfield class = "math-input" v-on:focus = "mathInputFocusStyle = [{boxShadow: '0 0 10px 0 rgba(40, 46, 91, 0.4)'}]" v-on:blur = "mathInputFocusStyle = null" v-bind:style = "mathInputFocusStyle" v-model = "currSubmission.answer"></mathlive-mathfield>
           </div>
-          <div class = "input-container" style = " margin-top: -10px; margin-bottom: 30px;">
+          <div class = "input-container" style = "margin-bottom: 30px;">
             <label style = "font-family: 'Montserrat', sans-serif; font-size: 15px;"><input type = "checkbox" style = "margin-right: 5px;" v-model = "currSubmission.mustMatch">Must Match Exactly (Otherwise 5% Error Margin)</label>
           </div>
           <div class = "input-container solution">
@@ -213,9 +212,10 @@
 
   import Menu from "../components/Menu";
   import User from "../components/User";
-  import FormulaEditor from "../components/FormulaEditor";
   import Problem from "../components/Problem";
   import FullEdit from "../components/FullEdit";
+  import Mathml2latex from 'mathml-to-latex';
+  import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
 
 
   export default {
@@ -223,7 +223,6 @@
     components: {
       Menu,
       User,
-      FormulaEditor,
       FullEdit,
       Problem
     },
@@ -234,6 +233,7 @@
           open: false,
           type: ""
         },
+        mathInputFocusStyle: null,
         errors: [],
         difficultyHover: null,
         submitData: this.$store.getters.ProblemMetaData,
@@ -495,6 +495,7 @@
         let self = this;
         this.problemPreview = Object.assign({}, this.currSubmission);
 
+        this.problemPreview.answer = "<math>" + MathLive.convertLatexToMathMl(this.problemPreview.answer) + "</math>";
         this.problemPreview.diagram = ((this.problemPreview.diagramType === "file" && this.problemPreview.diagramFile !== null) ? this.problemPreview.diagramFile.text : (this.problemPreview.diagramType === "code" ? this.problemPreview.diagram : ""));
         this.problemPreview.solutionDiagram = ((this.problemPreview.solutionDiagramType === "file" && this.problemPreview.solutionDiagramFile !== null) ? this.problemPreview.solutionDiagramFile.text : (this.problemPreview.solutionDiagramType === "code" ? this.problemPreview.solutionDiagram : ""));
 
@@ -542,7 +543,7 @@
           hintOne: problem.hintOne,
           hintTwo: problem.hintTwo === null ? "": problem.hintTwo,
           hintTwoInclude: problem.hintTwo !== null,
-          answer: problem.answer,
+          answer: Mathml2latex.convert(problem.answer),
           mustMatch: problem.mustMatch,
           solution: problem.solution,
           solutionDiagram: problem.solutionDiagram === null ? "" : problem.solutionDiagram,
@@ -970,6 +971,16 @@
     overflow: hidden;
     padding: 10px;
     width: 100%;
+  }
+
+  .math-input {
+    border: 1px solid rgba(40, 46, 91, 0.4);
+    border-radius: 5px;
+    outline: none;
+    padding: 3px 0 3px 12px;
+    line-height: 20px;
+    transition: box-shadow .3s ease;
+    cursor: text;
   }
 
 

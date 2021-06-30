@@ -1,6 +1,6 @@
 <template>
   <div id = "formula-editor">
-    <div ref = "input" id = "input" v-on:change = "update"><span></span></div>
+    <div ref = "input" id = "input"><span></span></div>
   </div>
 </template>
 
@@ -46,11 +46,13 @@
     watch: {
       text: function(newText) {
         editor.setMathML(newText);
+        console.log(newText);
       }
     },
     methods: {
       update: function() {
         this.$emit("update", editor.getMathML().toString());
+        console.log("Update: ", editor.getMathML().toString());
       }
     },
     mounted() {

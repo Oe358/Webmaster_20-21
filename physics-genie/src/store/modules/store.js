@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
 
 const state = {
   processing: false,
@@ -92,7 +93,7 @@ const state = {
   },
   pastAnswers: [],
   result: "",
-  currAnswer: "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>"
+  currAnswer: ""
 };
 const getters = {
   Confirmations: state => state.confirmations,
@@ -140,6 +141,7 @@ const actions = {
     commit('setProblemMetaData', response.data);
     dispatch('GetUserStats');
     dispatch('GetSubmittedProblems');
+    dispatch('GetCurrProblem');
   },
   async GetCurrProblem({commit, getters}) {
     let response = await axios.get('wp-json/physics_genie/problem', {headers: {'Authorization': 'Bearer ' + getters.Token}});
@@ -309,7 +311,7 @@ const actions = {
     await axios.post("wp-json/physics_genie/submit-problem", {
       problem_text: getters.CurrSubmission.problemText,
       diagram: (getters.CurrSubmission.diagramType === "file" ? getters.CurrSubmission.diagramFile.text : (getters.CurrSubmission.diagramType === "code" ? getters.CurrSubmission.diagram : "")),
-      answer: getters.CurrSubmission.answer,
+      answer: "<math>" + MathLive.convertLatexToMathMl(getters.CurrSubmission.answer) + "</math>",
       must_match: getters.CurrSubmission.mustMatch ? "true" : "false",
       solution: getters.CurrSubmission.solution,
       solution_diagram: (getters.CurrSubmission.solutionDiagramType === "file" ? getters.CurrSubmission.solutionDiagramFile.text : (getters.CurrSubmission.solutionDiagramType === "code" ? getters.CurrSubmission.solutionDiagram : "")),
@@ -356,7 +358,7 @@ const actions = {
       problem_id: getters.CurrSubmissionEdit.problemID,
       problem_text: getters.CurrSubmissionEdit.problemText,
       diagram: (getters.CurrSubmissionEdit.diagramType === "file" ? getters.CurrSubmissionEdit.diagramFile.text : (getters.CurrSubmissionEdit.diagramType === "code" ? getters.CurrSubmissionEdit.diagram : "")),
-      answer: getters.CurrSubmissionEdit.answer,
+      answer: "<math>" + MathLive.convertLatexToMathMl(getters.CurrSubmissionEdit.answer) + "</math>",
       must_match: getters.CurrSubmissionEdit.mustMatch ? "true" : "false",
       solution: getters.CurrSubmissionEdit.solution,
       solution_diagram: (getters.CurrSubmissionEdit.solutionDiagramType === "file" ? getters.CurrSubmissionEdit.solutionDiagramFile.text : (getters.CurrSubmissionEdit.solutionDiagramType === "code" ? getters.CurrSubmissionEdit.solutionDiagram : "")),

@@ -46,11 +46,11 @@
         <p class = "hint one" v-if = "pastAnswers.length >= 2 && problem.hintTwo !== null">Hint: {{ problem.hintTwo }}</p>
       </div>
       <div id = "previous-answers" v-if = "pastAnswers.length >= 1 && result === ''">Past Answers:
-        <span class = "previous-answer" v-bind:key = "answer" v-for = "(answer, index) in pastAnswers"><vue-mathjax v-bind:formula = "'$' + Mathml2latex.convert(answer) + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax>{{ (index === pastAnswers.length - 1 ? '' : ', ') }}</span>
+        <span class = "previous-answer" v-bind:key = "answer" v-for = "(answer, index) in pastAnswers"><vue-mathjax v-bind:formula = "'$' + answer + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax>{{ (index === pastAnswers.length - 1 ? '' : ', ') }}</span>
       </div>
       <div class = "flex row problem" v-if = "result === ''">
         <div style = "width: 500px" id = "studentAnswer">
-          <FormulaEditor v-bind:text = "currAnswer" v-on:update = "updateAnswer" />
+          <mathlive-mathfield class = "math-input" v-on:focus = "mathInputFocusStyle = [{boxShadow: '0 0 10px 0 rgba(40, 46, 91, 0.4)'}]" v-on:blur = "mathInputFocusStyle = null" v-bind:style = "mathInputFocusStyle" v-model = "currAnswer"></mathlive-mathfield>
         </div>
         <div class = "buttons">
           <button id = "submit-pr" class = "button blue top" v-on:click = "onSubmit">Submit</button>
@@ -61,7 +61,7 @@
 
       <div id = "solution" v-if = "result !== ''">
         <div id = "student-answers">
-          <div v-for = "(answer, index) in pastAnswers" v-bind:key = "answer" v-bind:class = "(result === 'correct' && index === pastAnswers.length - 1) ? 'correct' : 'incorrect'">{{ ordinalNumbers[index] }} Response: <vue-mathjax v-bind:formula = "'$' + Mathml2latex.convert(answer) + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></div>
+          <div v-for = "(answer, index) in pastAnswers" v-bind:key = "answer" v-bind:class = "(result === 'correct' && index === pastAnswers.length - 1) ? 'correct' : 'incorrect'">{{ ordinalNumbers[index] }} Response: <vue-mathjax v-bind:formula = "'$' + answer + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></div>
         </div>
         <div id = "answer" v-if = "result !== 'correct'">Answer: <vue-mathjax class = "correct"  v-bind:formula = "'$' + Mathml2latex.convert(problem.answer) + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></div>
         <div id = "solution-text">
@@ -82,33 +82,74 @@
 
   import axios from 'axios';
   import {VueMathjax} from 'vue-mathjax'
-  import FormulaEditor from "./FormulaEditor";
   import { mapGetters } from "vuex";
   import Mathml2latex from 'mathml-to-latex';
+  import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
 
   export default {
     name: "Problem",
     components: {
-      'vue-mathjax': VueMathjax,
-      FormulaEditor
+      'vue-mathjax': VueMathjax
     },
     props: {
       problem: {
         type: Object
+      },
+      official: {
+        type: Boolean
       }
     },
     computed: {
       ...mapGetters({
-        pastAnswers: 'PastAnswers',
-        result: 'Result',
-        userStats: 'UserStats'
+        userStats: 'UserStats',
+        submitData: 'ProblemMetaData'
       }),
-      currAnswer: {
+      pastAnswers: {
         get() {
-          return this.$store.getters.CurrAnswer;
+          if (this.official) {
+            return this.$store.getters.PastAnswers;
+          } else {
+            return this.pastAnswersUnofficial;
+          }
         },
         set(value) {
-          this.$store.commit('setCurrAnswer', value);
+          if (this.official) {
+            this.$store.commit('setPastAnswers', value);
+          } else {
+            this.pastAnswersUnofficial = value;
+          }
+        }
+      },
+      result: {
+        get() {
+          if (this.official) {
+            return this.$store.getters.Result;
+          } else {
+            return this.resultUnofficial;
+          }
+        },
+        set(value) {
+          if (this.official) {
+            this.$store.commit('setResult', value);
+          } else {
+            this.resultUnofficial = value;
+          }
+        }
+      },
+      currAnswer: {
+        get() {
+          if (this.official) {
+            return this.$store.getters.CurrAnswer;
+          } else {
+            return this.currAnswerUnofficial;
+          }
+        },
+        set(value) {
+          if (this.official) {
+            this.$store.commit('setCurrAnswer', value);
+          } else {
+            this.currAnswerUnofficial = value;
+          }
         }
       },
       otherFociList: function() {
@@ -129,85 +170,95 @@
         return string;
       }
     },
-    watch: {
-      pastAnswers: {
-        handler() {
-          this.$store.commit('setPastAnswers', this.pastAnswers);
-        },
-        deep: true
-      }
-    },
     data() {
       return {
-        submitData: this.$store.getters.ProblemMetaData,
         ordinalNumbers: ["First", "Second", "Third", "Fourth", "Fifth"],
         Mathml2latex: Mathml2latex,
-        wrong: false
+        pastAnswersUnofficial: [],
+        currAnswerUnofficial: "",
+        resultUnofficial: "",
+        wrong: false,
+        mathInputFocusStyle: null
       }
     },
     methods: {
       onSubmit: function() {
         let self = this;
-        console.log(self.currAnswer.replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
-        console.log(self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
-        axios.post("wp-json/physics_genie/external-request", {
-          method: "POST",
-          url: "www.wiris.net/demo/editor/evaluate?mml=" + self.currAnswer.replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
-        }).then((response) => {
-          let studentAnswer = parseFloat(response.data);
+        if (this.currAnswer === "") {
+          this.$store.dispatch('Confirmation', "Please enter an answer before submitting");
+        } else if (this.pastAnswers.includes(this.currAnswer)) {
+          this.$store.dispatch('Confirmation', "You cannot enter an answer that you have already tried");
+        } else {
+          this.$store.commit('setProcessing', true);
+
+          console.log("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>");
+          console.log(self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
           axios.post("wp-json/physics_genie/external-request", {
             method: "POST",
-            url: "www.wiris.net/demo/editor/evaluate?mml=" + self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
-          }).then((res) => {
-            let actualAnswer = parseFloat(res.data);
+            url: "www.wiris.net/demo/editor/evaluate?mml=" + ("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>")
+          }).then((response) => {
+            let studentAnswer = parseFloat(response.data);
+            axios.post("wp-json/physics_genie/external-request", {
+              method: "POST",
+              url: "www.wiris.net/demo/editor/evaluate?mml=" + self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
+            }).then((res) => {
+              let actualAnswer = parseFloat(res.data);
 
-            if (self.currAnswer.replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") === self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") || (studentAnswer < actualAnswer * 1.05 && studentAnswer > actualAnswer * 0.95)) {
-              console.log("Correct");
-              self.correct();
-            } else {
-              console.log("Incorrect");
-              self.incorrect();
-            }
+              if (("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>") === self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") || (studentAnswer < actualAnswer * 1.05 && studentAnswer > actualAnswer * 0.95)) {
+                console.log("Correct");
+                self.correct();
+              } else {
+                console.log("Incorrect");
+                self.incorrect();
+              }
 
+            });
           });
-        });
+
+        }
       },
       correct: function() {
-        this.$set(this.pastAnswers, this.pastAnswers.length, this.currAnswer);
-        this.currAnswer = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>";
-        this.$store.commit('setResult', "correct");
+        this.pastAnswers.push(this.currAnswer);
+        this.currAnswer = "";
+        this.result = "correct";
         this.showResult();
       },
       incorrect: function() {
-        this.$set(this.pastAnswers, this.pastAnswers.length, this.currAnswer);
-        this.currAnswer = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>";
+        this.pastAnswers.push(this.currAnswer);
+        this.currAnswer = "";
         if (this.pastAnswers.length === 3) {
-          this.$store.commit('setResult', "incorrect");
+          this.result = "incorrect";
           this.showResult();
         }
+        this.$store.commit('setProcessing', false);
       },
       gaveUp: function() {
-        this.currAnswer = "<math xmlns=\"http://www.w3.org/1998/Math/MathML\"/>";
-        this.$store.commit('setResult', "gave up");
+        this.currAnswer = "";
+        this.result = "gave up";
         this.showResult();
       },
       skip: function() {
 
       },
       showResult: function() {
-        this.$store.dispatch('submitAttempt');
+        if (this.official) {
+          this.$store.dispatch('submitAttempt');
+        }
+        this.$store.commit('setProcessing', false);
       },
       next: function() {
-        this.$store.commit('setPastAnswers', []);
-        this.$store.commit('setResult', "");
-        this.$store.dispatch('GetCurrProblem', {token: this.$store.getters.Token, submitData: this.$store.getters.ProblemMetaData});
+        this.pastAnswers = [];
+        this.result = "";
+        if (this.official) {
+          this.$store.dispatch('GetCurrProblem');
+        }
       },
       updateAnswer: function(answer) {
         this.currAnswer = answer;
       }
     },
     mounted() {
-      // this.$store.commit('setPastAnswers', []);
+
     }
   }
 </script>
@@ -438,6 +489,16 @@
     position: relative;
     top: -10px;
     color: #ff6469;
+  }
+
+  .math-input {
+    border: 1px solid rgba(40, 46, 91, 0.4);
+    border-radius: 5px;
+    outline: none;
+    padding: 3px 0 3px 12px;
+    line-height: 20px;
+    transition: box-shadow .3s ease;
+    cursor: text;
   }
 
 
