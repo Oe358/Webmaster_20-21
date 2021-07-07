@@ -42,8 +42,8 @@
       <p id = "problem-text"><vue-mathjax :formula = "problem.problemText" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></p>
       <div id = "diagram" v-if = "problem.diagram !== null" v-html = "problem.diagram"></div>
       <div id = "hints" v-if = "result === ''">
-        <p class = "hint one" v-if = "pastAnswers.length >= 1">Hint: {{ problem.hintOne }}</p>
-        <p class = "hint one" v-if = "pastAnswers.length >= 2 && problem.hintTwo !== null">Hint: {{ problem.hintTwo }}</p>
+        <p class = "hint one" v-if = "pastAnswers.length >= 1">Hint: <vue-mathjax v-bind:formula = "problem.hintOne" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></p>
+        <p class = "hint one" v-if = "pastAnswers.length >= 2 && problem.hintTwo !== null">Hint: <vue-mathjax v-bind:formula = "problem.hintTwo" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax></p>
       </div>
       <div id = "previous-answers" v-if = "pastAnswers.length >= 1 && result === ''">Past Answers:
         <span class = "previous-answer" v-bind:key = "answer" v-for = "(answer, index) in pastAnswers"><vue-mathjax v-bind:formula = "'$' + answer + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax>{{ (index === pastAnswers.length - 1 ? '' : ', ') }}</span>
@@ -55,7 +55,7 @@
         <div class = "buttons">
           <button id = "submit-pr" class = "button blue top" v-on:click = "onSubmit">Submit</button>
           <button id = "give-up" class = "button bottom red" v-on:click = "gaveUp">Give Up</button>
-          <button id = "skip" class = "button bottom" v-on:click = "skip">Skip</button>
+          <button id = "skip" class = "button bottom" v-on:click = "skip" v-bind:class = "pastAnswers.length > 0 ? 'disabled' : ''">Skip</button>
         </div>
       </div>
 
@@ -191,8 +191,8 @@
         } else {
           this.$store.commit('setProcessing', true);
 
-          console.log("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>");
-          console.log(self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
+          console.log("Student Answer: ", "<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>");
+          console.log("Correct Answer: ", self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
           axios.post("wp-json/physics_genie/external-request", {
             method: "POST",
             url: "www.wiris.net/demo/editor/evaluate?mml=" + ("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>")
@@ -217,41 +217,63 @@
 
         }
       },
-      correct: function() {
+      correct: async function() {
         this.pastAnswers.push(this.currAnswer);
         this.currAnswer = "";
         this.result = "correct";
-        this.showResult();
+        this.$store.commit('setProcessing', false);
+        if (this.official) {
+          await this.$store.dispatch('SubmitAttempt');
+          this.$store.dispatch('GetUserStats');
+        }
       },
-      incorrect: function() {
+      incorrect: async function() {
         this.pastAnswers.push(this.currAnswer);
         this.currAnswer = "";
+        this.$store.commit('setProcessing', false);
         if (this.pastAnswers.length === 3) {
           this.result = "incorrect";
-          this.showResult();
+          if (this.official) {
+            await this.$store.dispatch('SubmitAttempt');
+            this.$store.dispatch('GetUserStats');
+          }
         }
-        this.$store.commit('setProcessing', false);
       },
-      gaveUp: function() {
+      gaveUp: async function() {
         this.currAnswer = "";
         this.result = "gave up";
-        this.showResult();
-      },
-      skip: function() {
-
-      },
-      showResult: function() {
+        this.$store.commit('setProcessing', false);
         if (this.official) {
-          this.$store.dispatch('submitAttempt');
+          await this.$store.dispatch('SubmitAttempt');
+          this.$store.dispatch('GetUserStats');
+        }
+      },
+      skip: async function() {
+        if (this.official) {
+          this.$store.commit('setProcessing', true);
+          await axios.put("wp-json/physics_genie/reset-curr-problem", null, {headers: {'Authorization': 'Bearer ' + this.$store.getters.Token}});
+          await this.$store.dispatch('GetCurrProblem');
+          this.$store.commit('setProcessing', false);
+        }
+        this.pastAnswers = [];
+        this.result = "";
+      },
+      showResult: async function() {
+        if (this.official) {
+          await this.$store.dispatch('SubmitAttempt');
+          this.$store.commit('setProcessing', false);
+          this.$store.dispatch('GetUserStats');
         }
         this.$store.commit('setProcessing', false);
       },
-      next: function() {
+      next: async function() {
+        if (this.official) {
+          this.$store.commit('setProcessing', true);
+          await this.$store.dispatch('GetCurrProblem');
+          this.$store.commit('setProcessing', false);
+        }
         this.pastAnswers = [];
         this.result = "";
-        if (this.official) {
-          this.$store.dispatch('GetCurrProblem');
-        }
       },
       updateAnswer: function(answer) {
         this.currAnswer = answer;
@@ -471,6 +493,11 @@
     justify-content: space-around;
   }
 
+  .button.disabled {
+    pointer-events: none;
+    opacity: 0.3;
+  }
+
   .hint {
     overflow: hidden;
     background: rgba(197, 210, 255, 0.6);
@@ -577,6 +604,7 @@
     margin-top: 20px;
     margin-bottom: 20px;
   }
+
 
   #save {
     margin-right: 10px;

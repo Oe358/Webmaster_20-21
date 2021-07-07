@@ -14,28 +14,27 @@
           <router-link to = "/setup" class = "link">Problem Setup</router-link>
         </div>
       </div>
-      <div id = "settings" class = "box">
-        <mathlive-mathfield v-model = "formula" v-on:input = "keyStroke" v-bind:options = "{virtualKeyboardMode: 'manual'}"></mathlive-mathfield>
+      <!--<div id = "settings" class = "box">-->
         <!--Topic: {{ submitData.topics.filter(function(topic) {return topic.topic === setup.topics[0]})[0].name }}-->
         <!--Focus: {{ submitData.focuses.filter(function(focus) {return focus.focus === setup.foci[0]})[0].name }}-->
-      </div>
+      <!--</div>-->
       <div id = "summary" class = "box">
         <div class = "summary-info left">
           <div class = "descriptors">
             <div>Problems Correct</div>
             <div>Problems Incorrect</div>
-            <div>Problems Skipped</div>
+            <div>Average Attempts</div>
           </div>
           <div class = "values">
             <div>{{ userStats.correct }}</div>
-            <div>{{ userStats.presented - userStats.skipped - userStats.correct }}</div>
-            <div>{{ userStats.skipped }}</div>
+            <div>{{ userStats.presented - userStats.correct }}</div>
+            <div>{{ userStats.avgAttempts }}</div>
           </div>
         </div>
         <div>
           <radial-progress-bar class = "progress-bar" :diamater = "100" :completed-steps = "userStats.xp-Math.pow(Math.floor(Math.sqrt(userStats.xp+9)), 2)+9" :total-steps = "2*Math.floor(Math.sqrt(userStats.xp+9))+1" start-color = "#E8D2A9" stop-color = "#000A5D" inner-stroke-color = "#08232D" :stroke-width = "30" :inner-stroke-width = "35" stroke-linecap = "butt">
             <span class = "level">{{ Math.floor(Math.sqrt(userStats.xp+9))-2 }}</span>
-            <span class = "xp">{{ userStats.xp }}</span>
+            <span class = "xp">{{ userStats.xp-Math.pow(Math.floor(Math.sqrt(userStats.xp+9)), 2)+9 }} / {{ 2*Math.floor(Math.sqrt(userStats.xp+9))+1 }}</span>
           </radial-progress-bar>
         </div>
         <div class = "summary-info right">
@@ -45,15 +44,15 @@
             <div>Current Streak</div>
           </div>
           <div class = "values">
-            <div>{{ longestWinstreak }}</div>
-            <div>{{ longestLosestreak }}</div>
-            <div>10</div>
+            <div>{{ userStats.longestWinstreak }}</div>
+            <div>{{ userStats.longestLosestreak }}</div>
+            <div>{{ (userStats.streak > 0 ? "+" : "-") + Math.abs(userStats.streak)}}</div>
           </div>
         </div>
       </div>
-      <div class = "box" v-for = "topic in submitData.topics">
-        <h2>{{ topic.name }}</h2>
-      </div>
+      <!--<div class = "box" v-for = "topic in submitData.topics">-->
+        <!--<h2>{{ topic.name }}</h2>-->
+      <!--</div>-->
     </div>
   </div>
 </template>
@@ -84,8 +83,6 @@
       ...mapGetters({
         setup: 'UserSetup',
         submitData: 'ProblemMetaData',
-        longestWinstreak: 'LongestWinstreak',
-        longestLosestreak: 'LongestLosestreak',
         userStats: 'UserStats'
       })
     },
@@ -102,9 +99,6 @@
       cancelNameEdit: function() {
         this.user = this.$store.getters.StateUser;
         this.editingName = false;
-      },
-      keyStroke: function() {
-        console.log(MathLive.convertLatexToMathMl(this.formula));
       }
     },
     updated() {

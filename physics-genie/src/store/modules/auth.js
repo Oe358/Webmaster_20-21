@@ -22,6 +22,7 @@ const actions = {
   async LogIn({commit, dispatch}, User) {
     let response = await axios.post('wp-json/jwt-auth/v1/token', User);
     await Promise.all([commit('setUser', response.data), dispatch('GetUserMetadata'), dispatch('GetProblemMetadata', {root: true}), dispatch('GetUserInfo', {root: true})]);
+    await Promise.all([dispatch('GetUserStats', {root: true}), dispatch('GetSubmittedProblems', {root: true}), dispatch('GetCurrProblem', {root: true})]);
   },
   async PasswordReset(form) {
     await axios.post('wp-json/physics_genie/password-reset', form);

@@ -37,7 +37,7 @@
       </router-link>
     </div>
 
-    <a href = "https://physicsgenie.ga/" id = "back-home" class = "router-link">
+    <a href = "http://physicsgenie.ga/" id = "back-home" class = "router-link">
       <i class = "fa fa-long-arrow-left" aria-hidden = "true"></i>
       <div class = "text">Back to Site</div>
     </a>

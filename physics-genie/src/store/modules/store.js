@@ -20,10 +20,10 @@ const state = {
     correct: null,
     avgAttempts: null,
     xp: null,
-    streak: null
+    streak: null,
+    longestWinstreak: null,
+    longestLosestreak: null
   },
-  longestWinstreak: null,
-  longestLosestreak: null,
   currProblem: {
     problemID: null,
     problemText: "",
@@ -102,8 +102,6 @@ const getters = {
   UserSetup: state => state.userSetup,
   SubmittedProblems: state => state.submittedProblems,
   UserStats: state => state.userStats,
-  LongestWinstreak: state => state.longestWinstreak,
-  LongestLosestreak: state => state.longestLosestreak,
   ProblemMetaData: state => state.problemMetaData,
   CurrSubmission: state => state.currSubmission,
   CurrSubmissionEdit: state => state.currSubmissionEdit,
@@ -125,23 +123,17 @@ const actions = {
   },
   async GetUserInfo({commit, getters}) {
     let response = await axios.get('wp-json/physics_genie/user-info', {headers: {'Authorization': 'Bearer ' + getters.Token}});
+
     commit('setUserSetup', {
       difficulty: response.data.setup.curr_diff,
       topics: response.data.setup.curr_topics.split(""),
       foci: response.data.setup.curr_foci.split(""),
       calculus: response.data.setup.calculus === "1"
     });
-    commit('setLongestStreaks', {
-      winstreak: response.data.longest_winstreak,
-      losestreak: response.data.longest_losestreak
-    })
   },
-  async GetProblemMetadata({commit, dispatch}) {
+  async GetProblemMetadata({commit}) {
     let response = await axios.get('wp-json/physics_genie/submit-data');
     commit('setProblemMetaData', response.data);
-    dispatch('GetUserStats');
-    dispatch('GetSubmittedProblems');
-    dispatch('GetCurrProblem');
   },
   async GetCurrProblem({commit, getters}) {
     let response = await axios.get('wp-json/physics_genie/problem', {headers: {'Authorization': 'Bearer ' + getters.Token}});
@@ -169,63 +161,66 @@ const actions = {
     });
   },
   async GetUserStats({commit, getters}) {
-    let response = await axios.get('wp-json/physics_genie/user-stats', {headers: {'Authorization': 'Bearer ' + getters.Token}});
+    let response = await axios.get('wp-json/physics_genie/user-stats?topic=z&focus=z', {headers: {'Authorization': 'Bearer ' + getters.Token}});
     let stats = {
       topics: [],
-      presented: 0,
-      skipped: 0,
-      correct: 0,
-      avgAttempts: 0,
-      xp: 0,
-      streak: 0
+      presented: parseInt(response.data[0].num_presented),
+      correct: parseInt(response.data[0].num_correct),
+      avgAttempts: parseFloat(response.data[0].avg_attempts),
+      xp: parseInt(response.data[0].xp),
+      streak: parseInt(response.data[0].streak),
+      longestWinstreak: parseInt(response.data[0].longest_winstreak),
+      longestLosestreak: parseInt(response.data[0].longest_losestreak)
     };
-    response.data.forEach(row => {
 
-      if (getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === row.focus}).length > 0) {
-        stats.presented += parseInt(row.num_presented);
-        stats.skipped += parseInt(row.num_skipped);
-        stats.correct += parseInt(row.num_correct);
-        stats.avgAttempts = (stats.avgAttempts * stats.presented + row.avg_attempts * row.num_presented) / (stats.presented + row.num_presented);
-        stats.xp += parseInt(row.xp);
 
-        let index = 0;
-        if (stats.topics.filter(function(topic) {return topic.topicId === row.topic}).length > 0) {
-          for (let i = 0; i < stats.topics.length; i++) {
-            if (stats.topics[i].topic === row.topic) {
-              index = i;
-            }
-          }
-          stats.topics[index].presented += parseInt(row.num_presented);
-          stats.topics[index].skipped += parseInt(row.num_skipped);
-          stats.topics[index].correct += parseInt(row.num_correct);
-          stats.topics[index].avgAttempts = (stats.topics[index].avgAttempts * stats.topics[index].presented + row.avg_attempts * row.num_presented) / (stats.topics[index].presented + row.num_presented);
-          stats.topics[index].xp += parseInt(row.xp);
-        } else {
-          stats.topics.push({
-            topic: getters.ProblemMetaData.topics.filter(function(topic) {return topic.topic === row.topic})[0].name,
-            topicId: row.topic,
-            foci: [],
-            presented: parseInt(row.num_presented),
-            skipped: parseInt(row.num_skipped),
-            correct: parseInt(row.num_correct),
-            avgAttempts: parseInt(row.avg_attempts),
-            xp: parseInt(row.xp),
-            streak: 0
-          });
-        }
-
-        stats.topics[index].foci.push({
-          focus: getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === row.focus})[0].name,
-          focusId: row.focus,
-          presented: parseInt(row.num_presented),
-          skipped: parseInt(row.num_skipped),
-          correct: parseInt(row.num_correct),
-          avgAttempts: parseInt(row.avg_attempts),
-          xp: parseInt(row.xp),
-          streak: parseInt(row.streak)
-        });
-      }
-    });
+    // response.data.forEach(row => {
+    //
+    //   if (getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === row.focus}).length > 0) {
+    //     stats.presented += parseInt(row.num_presented);
+    //     stats.skipped += parseInt(row.num_skipped);
+    //     stats.correct += parseInt(row.num_correct);
+    //     stats.avgAttempts = (stats.avgAttempts * stats.presented + row.avg_attempts * row.num_presented) / (stats.presented + row.num_presented);
+    //     stats.xp += parseInt(row.xp);
+    //
+    //     let index = 0;
+    //     if (stats.topics.filter(function(topic) {return topic.topicId === row.topic}).length > 0) {
+    //       for (let i = 0; i < stats.topics.length; i++) {
+    //         if (stats.topics[i].topic === row.topic) {
+    //           index = i;
+    //         }
+    //       }
+    //       stats.topics[index].presented += parseInt(row.num_presented);
+    //       stats.topics[index].skipped += parseInt(row.num_skipped);
+    //       stats.topics[index].correct += parseInt(row.num_correct);
+    //       stats.topics[index].avgAttempts = (stats.topics[index].avgAttempts * stats.topics[index].presented + row.avg_attempts * row.num_presented) / (stats.topics[index].presented + row.num_presented);
+    //       stats.topics[index].xp += parseInt(row.xp);
+    //     } else {
+    //       stats.topics.push({
+    //         topic: getters.ProblemMetaData.topics.filter(function(topic) {return topic.topic === row.topic})[0].name,
+    //         topicId: row.topic,
+    //         foci: [],
+    //         presented: parseInt(row.num_presented),
+    //         skipped: parseInt(row.num_skipped),
+    //         correct: parseInt(row.num_correct),
+    //         avgAttempts: parseInt(row.avg_attempts),
+    //         xp: parseInt(row.xp),
+    //         streak: 0
+    //       });
+    //     }
+    //
+    //     stats.topics[index].foci.push({
+    //       focus: getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === row.focus})[0].name,
+    //       focusId: row.focus,
+    //       presented: parseInt(row.num_presented),
+    //       skipped: parseInt(row.num_skipped),
+    //       correct: parseInt(row.num_correct),
+    //       avgAttempts: parseInt(row.avg_attempts),
+    //       xp: parseInt(row.xp),
+    //       streak: parseInt(row.streak)
+    //     });
+    //   }
+    // });
 
     commit('setUserStats', stats);
   },
@@ -308,6 +303,16 @@ const actions = {
     });
   },
   async SubmitProblem({commit, getters}) {
+    if (getters.CurrSubmission.source === "other") {
+      await axios.post("wp-json/physics_genie/add-source", {
+        category: getters.CurrSubmission.category,
+        author: getters.CurrSubmission.author,
+        source: getters.CurrSubmission.sourceOther
+      }, {headers: {'Authorization': 'Bearer ' + getters.Token}}).then(response => {
+        getters.CurrSubmission.source = response.data;
+      });
+    }
+
     await axios.post("wp-json/physics_genie/submit-problem", {
       problem_text: getters.CurrSubmission.problemText,
       diagram: (getters.CurrSubmission.diagramType === "file" ? getters.CurrSubmission.diagramFile.text : (getters.CurrSubmission.diagramType === "code" ? getters.CurrSubmission.diagram : "")),
@@ -400,16 +405,14 @@ const actions = {
       });
     });
   },
-  async submitAttempt({getters}) {
+  async SubmitAttempt({getters}) {
     await axios.post("wp-json/physics_genie/submit-attempt", {
       problem_id: getters.CurrProblem.problemID,
       num_attempts: getters.PastAnswers.length,
       correct: getters.Result === "correct" ? "true" : "false",
-      skipped: getters.Result === "gave up" ? "true" : "false",
       topic: getters.CurrProblem.topic,
       focus: getters.CurrProblem.mainFocus,
       difficulty: getters.CurrProblem.difficulty,
-      first_in_focus: (getters.UserStats.topics.filter(function(topic) { return topic.topicId === getters.CurrProblem.topic; }).length === 0 || getters.UserStats.topics.filter(function(topic) { return topic.topicId === getters.CurrProblem.topic; })[0].foci.filter(function(focus) {return focus.focusId === getters.CurrProblem.mainFocus;}).length === 0) ? 'true' : 'false'
     },  {headers: {'Authorization': 'Bearer ' + getters.Token}});
   }
 };

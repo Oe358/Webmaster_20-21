@@ -82,7 +82,8 @@
             this.$router.push("/");
             this.error = null;
           } catch (error) {
-            this.error = error;
+            this.errors.push(error);
+            this.$store.commit('setProcessing', false);
           }
         } else {
           this.$store.commit('setProcessing', false);

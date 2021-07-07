@@ -322,10 +322,12 @@
         if (this.errors.length === 0) {
           if (this.$route.params.id === undefined) {
             await this.$store.dispatch('SubmitProblem');
+            await this.$store.dispatch('GetProblemMetadata');
             await this.$store.dispatch('GetSubmittedProblems');
             this.$store.dispatch('Confirmation', "Problem successfully submitted");
           } else {
             await this.$store.dispatch('EditProblem');
+            await this.$store.dispatch('GetProblemMetadata');
             await this.$store.dispatch('GetSubmittedProblems');
             this.$store.dispatch('Confirmation', "Problem successfully edited");
           }

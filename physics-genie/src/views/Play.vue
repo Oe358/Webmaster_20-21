@@ -4,7 +4,7 @@
     <User />
     <div class = "content" v-bind:style = "{minHeight: windowHeight + 'px'}">
       <div class = "problem-div" ref = "problemDiv">
-        <Problem v-bind:problem = "problem" v-bind:official = "$route.params === null" class = "problem" />
+        <Problem v-bind:problem = "problem" v-bind:official = "$route.params.problem === undefined" class = "problem" />
       </div>
     </div>
   </div>

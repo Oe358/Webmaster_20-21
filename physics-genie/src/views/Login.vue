@@ -59,7 +59,8 @@
           this.showError = false
         } catch (error) {
           console.log(error);
-          this.showError = true
+          this.showError = true;
+          this.$store.commit('setProcessing', false);
         }
       }
     }
