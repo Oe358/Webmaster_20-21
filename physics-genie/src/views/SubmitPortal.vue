@@ -75,10 +75,26 @@
         <div class = "answer-div content">
           <h3>Answer</h3>
           <div class = "input-container">
-            <mathlive-mathfield class = "math-input" v-on:focus = "mathInputFocusStyle = [{boxShadow: '0 0 10px 0 rgba(40, 46, 91, 0.4)'}]" v-on:blur = "mathInputFocusStyle = null" v-bind:style = "mathInputFocusStyle" v-model = "currSubmission.answer"></mathlive-mathfield>
+            <mathlive-mathfield class = "math-input" v-on:focus = "mathInputFocusStyle = [{boxShadow: '0 0 10px 0 rgba(40, 46, 91, 0.4)'}]" v-on:blur = "mathInputFocusStyle = null" v-bind:style = "mathInputFocusStyle" v-model = "currSubmission.answer">{{ currSubmission.answer }}</mathlive-mathfield>
           </div>
-          <div class = "input-container" style = "margin-bottom: 30px;">
-            <label style = "font-family: 'Montserrat', sans-serif; font-size: 15px;"><input type = "checkbox" style = "margin-right: 5px;" v-model = "currSubmission.mustMatch">Must Match Exactly (Otherwise 5% Error Margin)</label>
+          <div class = "input-container">
+            <div class = "selector-buttons student-answer">
+              <div class = "indicator" v-bind:style = "!currSubmission.mustMatch ? {left: '0'} : {left: '50%'}"><div></div></div>
+              <button class = "error" v-bind:class = "{active: !currSubmission.mustMatch}" v-on:click = "mustMatchExactly(false)">{{ algebraicAnswer ? "Algebraically Equivalent" : "Error Margin" }}</button>
+              <button class = "must-match" v-bind:class = "{active: currSubmission.mustMatch}" v-on:click = "mustMatchExactly(true)">Must Match Exactly</button>
+            </div>
+            <div class = "flex-options student-answer">
+              <div v-if = "currSubmission.mustMatch" class = "must-match">
+                <p>Warning: The student's answer must match your inputted one exactly (form and value) to be marked correct.{{ algebraicAnswer ? " If you merely want the expression to be equivalent, select 'Algebraically Equivalent'." : " If you merely want the value to match, select 'Error Margin' and set it to 0." }}</p>
+              </div>
+              <div v-else-if = "!algebraicAnswer" class = "error-margin">
+                <input type = "range" min = "0" max = "20" class = "slider" v-model = "currSubmission.error">
+                <span class = "slider-value">Error: {{ currSubmission.error }}%</span>
+              </div>
+              <div v-else class = "algebraically-equivalent">
+                <p>To ensure the expression equivalency engine works properly, be sure to input your answer in its most simplified form and to be as clear as possible (e.g. include parentheses around trigonometric functions, etc.). In addition, if the answer is a pretty complex expression, it may be safer to convert it to a numerical answer instead – it is suggested you test a couple alternate forms in the "Preview" before submitting to see if this is necessary.</p>
+              </div>
+            </div>
           </div>
           <div class = "input-container solution">
             <h6>Solution <span class = "smaller">(LaTeX)</span></h6>
@@ -215,7 +231,6 @@
   import Problem from "../components/Problem";
   import FullEdit from "../components/FullEdit";
   import Mathml2latex from 'mathml-to-latex';
-  import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
 
 
   export default {
@@ -257,6 +272,10 @@
             this.$store.commit('setCurrSubmissionEdit', value);
           }
         }
+      },
+      algebraicAnswer: function() {
+        const regexp = new RegExp(/((?<!\\|[A-Za-z])[A-Za-z]+)|(\\alpha)|(\\beta)|(\\[Gg]amma)|(\\[Dd]elta)|(\\epsilon)|(\\varepsilon)|(\\zeta)|(\\eta)|(\\[Tt]heta)|(\\vartheta)|(\\iota)|(\\kappa)|(\\[Ll]ambda)|(\\mu)|(\\nu)|(\\[Xx]i)|(\\[Pp]i)|(\\rho)|(\\varrho)|(\\[Ss]igma)|(\\tau)|(\\[Uu]psilon)|(\\[Pp]hi)|(\\varphi)|(\\chi)|(\\[Pp]si)|(\\[Oo]mega)/);
+        return regexp.test(this.currSubmission.answer);
       }
     },
     methods: {
@@ -401,8 +420,8 @@
           alert("Sorry! There was an error loading the file.")
         };
       },
-      updateAnswer: function(answer) {
-        this.currSubmission.answer = answer;
+      mustMatchExactly: function(mustMatch) {
+        this.currSubmission.mustMatch = mustMatch;
       },
       setDifficulty: function(difficulty) {
         this.currSubmission.difficulty = difficulty;
@@ -433,6 +452,7 @@
             hintTwoInclude: true,
             answer: "",
             mustMatch: false,
+            error: 5,
             solution: "",
             solutionDiagram: "",
             solutionDiagramFile: null,
@@ -472,6 +492,7 @@
               hintTwoInclude: problem.hintTwo !== null,
               answer: problem.answer,
               mustMatch: problem.mustMatch,
+              error: problem.error,
               solution: problem.solution,
               solutionDiagram: problem.solutionDiagram === null ? "" : problem.solutionDiagram,
               solutionDiagramFile: null,
@@ -497,7 +518,6 @@
         let self = this;
         this.problemPreview = Object.assign({}, this.currSubmission);
 
-        this.problemPreview.answer = "<math>" + MathLive.convertLatexToMathMl(this.problemPreview.answer) + "</math>";
         this.problemPreview.diagram = ((this.problemPreview.diagramType === "file" && this.problemPreview.diagramFile !== null) ? this.problemPreview.diagramFile.text : (this.problemPreview.diagramType === "code" ? this.problemPreview.diagram : ""));
         this.problemPreview.solutionDiagram = ((this.problemPreview.solutionDiagramType === "file" && this.problemPreview.solutionDiagramFile !== null) ? this.problemPreview.solutionDiagramFile.text : (this.problemPreview.solutionDiagramType === "code" ? this.problemPreview.solutionDiagram : ""));
 
@@ -545,8 +565,9 @@
           hintOne: problem.hintOne,
           hintTwo: problem.hintTwo === null ? "": problem.hintTwo,
           hintTwoInclude: problem.hintTwo !== null,
-          answer: Mathml2latex.convert(problem.answer),
+          answer: (problem.answer.substring(0, 5) === "<math" ? Mathml2latex.convert(problem.answer) : problem.answer),
           mustMatch: problem.mustMatch,
+          error: problem.error,
           solution: problem.solution,
           solutionDiagram: problem.solutionDiagram === null ? "" : problem.solutionDiagram,
           solutionDiagramFile: null,
@@ -985,6 +1006,75 @@
     cursor: text;
   }
 
+  .student-answer.flex-options {
+    margin: 20px 0 30px 0;
+  }
+
+  .flex-options .must-match {
+    background: rgba(255, 207, 209, 0.6);
+    border-radius: 10px;
+    color: #ff6469;
+    box-shadow: -0.1px 0 10px rgba(120, 120, 120, 0.5);
+    font-size: 11px;
+    padding: 20px 35px;
+    font-family: "Montserrat", sans-serif;
+  }
+
+  .flex-options .algebraically-equivalent {
+    background: rgba(40, 83, 128, 0.2);
+    border-radius: 10px;
+    color: #285380;
+    box-shadow: -0.1px 0 10px rgba(120, 120, 120, 0.5);
+    font-size: 11px;
+    padding: 20px 35px;
+    font-family: "Montserrat", sans-serif;
+  }
+
+  .flex-options .error-margin {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .flex-options .slider {
+    margin-top: 9px;
+    width: 100%;
+    background: rgba(40, 83, 128, 0.2);
+    height: 10px;
+    -webkit-appearance: none;
+    outline: none;
+    border-radius: 15px;
+  }
+
+  .flex-options .slider-value {
+    width: 85px;
+    margin-left: 2.5%;
+    padding: 5px;
+    font-size: 12px;
+    border: 1px solid #285380;
+    color: #285380;
+    font-family: "Montserrat", sans-serif;
+    border-radius: 6px;
+    height: 15px;
+    text-align: center;
+  }
+
+  .flex-options .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #285380;
+    cursor: pointer;
+  }
+
+  .flex-options .slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #285380;
+    cursor: pointer;
+  }
+
 
   .solution.input-container {
     position: relative;
@@ -1177,11 +1267,11 @@
     height: 25px;
   }
 
-  .input-container .selector-buttons.hint-two .indicator {
+  .input-container .selector-buttons.hint-two .indicator, .input-container .selector-buttons.student-answer .indicator {
     width: 50%;
   }
 
-  .input-container .hint-two .indicator div {
+  .input-container .hint-two .indicator div, .input-container .student-answer .indicator div {
     width: 170px;
   }
 

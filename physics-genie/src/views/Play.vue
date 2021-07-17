@@ -81,6 +81,8 @@
             problemText: response.data.problem_text.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
             diagram: (response.data.diagram === null) ? null : response.data.diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
             answer: response.data.answer.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+            mustMatch: response.data.must_match === "1",
+            error: response.data.error,
             solution: response.data.solution.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
             solutionDiagram: (response.data.solution_diagram === null) ? null : response.data.solution_diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
             hintOne: response.data.hint_one.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
@@ -94,6 +96,8 @@
           };
         });
       }
+
+
     },
     created() {
 

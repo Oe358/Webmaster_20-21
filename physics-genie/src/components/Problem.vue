@@ -1,24 +1,15 @@
 /* eslint-disable *
 <template>
   <div id = "problem">
+    <ReportError v-if = "reportError" v-bind:problemID = "problem.problemID" v-on:close = "reportErrorClose" style = "z-index: 500;" />
     <div id = "progress-bars">
       <div class = "topic">
         <h4>{{ problem.topicName }}</h4>
-        <div class = "bar">
-          <!--<div class = "curr-progress" v-bind:style = "{width: ((userStats.xp-Math.pow(Math.floor(Math.sqrt(userStats.xp+9)), 2)+9)/(2*Math.floor(Math.sqrt(userStats.xp+9))+1)) + '%'}"></div>-->
-          <div class = "curr-progress" v-bind:style = "{width: userStats.xp + '%'}"></div>
-          <!--<div class = "curr-progress" v-bind:style = "{width: 50 + '%'}"></div>-->
-          <div class = "advancement-progress">+10</div>
-        </div>
-        <div class = "badge"><div class = "img"></div></div>
+        <ProgressBar class = "progress-bar" v-bind:xp = "topicStatsXP" v-bind:add = "add" />
       </div>
       <div class = "focus">
         <h4>{{ problem.mainFocusName }}</h4>
-        <div class = "bar">
-          <div class = "curr-progress"></div>
-          <div class = "advancement-progress">+10</div>
-        </div>
-        <div class = "badge"><div class = "img"></div></div>
+        <ProgressBar class = "progress-bar" v-bind:xp = "focusStatsXP" v-bind:add = "add" />
       </div>
     </div>
     <div class = "content" v-bind:style = "(result === 'correct') ? 'border: 1px solid rgb(5, 178, 0)' : ((result === 'incorrect' || (result === '' && pastAnswers.length > 0)) ? 'border: 1px solid #ff6469' : 'border: 1px solid rgba(17, 21, 33, 0.4)')">
@@ -49,8 +40,9 @@
         <span class = "previous-answer" v-bind:key = "answer" v-for = "(answer, index) in pastAnswers"><vue-mathjax v-bind:formula = "'$' + answer + '$'" v-bind:options = "{tex2jax: {inlineMath: [['$', '$']]}, showProcessingMessages: false}"></vue-mathjax>{{ (index === pastAnswers.length - 1 ? '' : ', ') }}</span>
       </div>
       <div class = "flex row problem" v-if = "result === ''">
-        <div style = "width: 500px" id = "studentAnswer">
+        <div style = "width: 500px" id = "answer-container">
           <mathlive-mathfield class = "math-input" v-on:focus = "mathInputFocusStyle = [{boxShadow: '0 0 10px 0 rgba(40, 46, 91, 0.4)'}]" v-on:blur = "mathInputFocusStyle = null" v-bind:style = "mathInputFocusStyle" v-model = "currAnswer"></mathlive-mathfield>
+          <span class = "expecting">Expecting: {{ algebraicAnswer ? (problem.mustMatch ? "Exact algebraic expression (must match form exactly)" : "Algebraic expression (as simplified as possible)") : (problem.mustMatch ? "Exact numerical expression (must match both form and value exactly)" : (problem.error === "0" ? "Exact numerical answer" : "Numerical answer (must match value within a " + problem.error + "% error)")) }}</span>
         </div>
         <div class = "buttons">
           <button id = "submit-pr" class = "button blue top" v-on:click = "onSubmit">Submit</button>
@@ -71,7 +63,7 @@
       </div>
       <div class = "solution buttons" v-if = "result !== ''">
         <!--<button id = "save" class = "button blue"><i class = "fa fa-plus"></i>Save</button>-->
-        <button id = "report" class = "button"><i class = "fa fa-flag"></i>Report an Error</button>
+        <button id = "report" v-on:click = "reportErrorPressed" class = "button" v-if = "problem.problemID !== null"><i class = "fa fa-flag"></i>Report an Error</button>
       </div>
       <button id = "next" v-on:click = "next" v-if = "result !== ''">Next<div class = "arrow"><div></div><div></div><div></div></div></button>
     </div>
@@ -85,11 +77,15 @@
   import { mapGetters } from "vuex";
   import Mathml2latex from 'mathml-to-latex';
   import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
+  import ProgressBar from './ProgressBar';
+  import ReportError from './ReportError';
 
   export default {
     name: "Problem",
     components: {
-      'vue-mathjax': VueMathjax
+      'vue-mathjax': VueMathjax,
+      ProgressBar,
+      ReportError
     },
     props: {
       problem: {
@@ -168,6 +164,47 @@
           }
         }
         return string;
+      },
+      algebraicAnswer: function() {
+        const regexp = new RegExp(/((?<!\\|[A-Za-z])[A-Za-z]+)|(\\alpha)|(\\beta)|(\\[Gg]amma)|(\\[Dd]elta)|(\\epsilon)|(\\varepsilon)|(\\zeta)|(\\eta)|(\\[Tt]heta)|(\\vartheta)|(\\iota)|(\\kappa)|(\\[Ll]ambda)|(\\mu)|(\\nu)|(\\[Xx]i)|(\\[Pp]i)|(\\rho)|(\\varrho)|(\\[Ss]igma)|(\\tau)|(\\[Uu]psilon)|(\\[Pp]hi)|(\\varphi)|(\\chi)|(\\[Pp]si)|(\\[Oo]mega)/);
+        return regexp.test(this.problem.answer);
+      },
+      focusStats: function() {
+        let self = this;
+        return this.userStats.topics.filter(function(topic) {return topic.topicId === self.problem.topic})[0].foci.filter(function(focus) {return focus.focusId === self.problem.mainFocus})[0];
+      },
+      topicStatsXP: function() {
+        let self = this;
+        let xp = this.userStats.topics.filter(function(topic) {return topic.topicId === self.problem.topic})[0].xp;
+        if (this.processingResult === "correct" && this.focusStats.streak > 0 && (this.focusStats.streak + 1) % 5 === 0) {
+          return xp + Math.floor(1.2*(this.focusStats.xp+this.problem.difficulty*(4-this.pastAnswers.length))) - this.focusStats.xp;
+        } else if (this.processingResult === "correct") {
+          return xp + this.problem.difficulty*(4-this.pastAnswers.length);
+        } else if (this.processingResult === "incorrect" && this.focusStats.streak < 0 && (this.focusStats.streak - 1) % 3 === 0) {
+          return xp - this.focusStats.xp + parseInt(0.8*this.focusStats.xp);
+        } else {
+          return xp;
+        }
+      },
+      focusStatsXP: function() {
+        if (this.processingResult === "correct" && this.focusStats.streak > 0 && (this.focusStats.streak + 1) % 5 === 0) {
+          return this.focusStats.xp + Math.floor(1.2*(this.focusStats.xp+this.problem.difficulty*(4-this.pastAnswers.length)));
+        } else if (this.processingResult === "correct") {
+          return this.focusStats.xp + this.problem.difficulty*(4-this.pastAnswers.length);
+        } else if (this.processingResult === "incorrect" && this.focusStats.streak < 0 && (this.focusStats.streak - 1) % 3 === 0) {
+          return parseInt(0.8*this.focusStats.xp);
+        } else {
+          return this.focusStats.xp;
+        }
+      },
+      add: function() {
+        if (this.result !== "") {
+          return 0;
+        } else if (this.focusStats.streak > 0 && (this.focusStats.streak + 1) % 5 === 0) {
+          return Math.floor(1.2*(this.focusStats.xp+this.problem.difficulty*(3-this.pastAnswers.length))) - this.focusStats.xp;
+        } else {
+          return this.problem.difficulty*(3-this.pastAnswers.length);
+        }
       }
     },
     data() {
@@ -178,10 +215,18 @@
         currAnswerUnofficial: "",
         resultUnofficial: "",
         wrong: false,
-        mathInputFocusStyle: null
+        mathInputFocusStyle: null,
+        reportError: false,
+        processingResult: ""
       }
     },
     methods: {
+      reportErrorPressed: function() {
+        this.reportError = true;
+      },
+      reportErrorClose: function() {
+        this.reportError = false;
+      },
       onSubmit: function() {
         let self = this;
         if (this.currAnswer === "") {
@@ -191,41 +236,68 @@
         } else {
           this.$store.commit('setProcessing', true);
 
-          console.log("Student Answer: ", "<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>");
-          console.log("Correct Answer: ", self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
-          axios.post("wp-json/physics_genie/external-request", {
-            method: "POST",
-            url: "www.wiris.net/demo/editor/evaluate?mml=" + ("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>")
-          }).then((response) => {
-            let studentAnswer = parseFloat(response.data);
+          if (self.problem.answer.substring(0, 5) === "<math") {
+            console.log("Student Answer: ", "<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>");
+            console.log("Correct Answer: ", self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", ""));
             axios.post("wp-json/physics_genie/external-request", {
               method: "POST",
-              url: "www.wiris.net/demo/editor/evaluate?mml=" + self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
-            }).then((res) => {
-              let actualAnswer = parseFloat(res.data);
+              url: "www.wiris.net/demo/editor/evaluate?mml=" + ("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>")
+            }).then((response) => {
+              let studentAnswer = parseFloat(response.data);
+              axios.post("wp-json/physics_genie/external-request", {
+                method: "POST",
+                url: "www.wiris.net/demo/editor/evaluate?mml=" + self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "")
+              }).then((res) => {
+                let actualAnswer = parseFloat(res.data);
 
-              if (("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>") === self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") || (studentAnswer < actualAnswer * 1.05 && studentAnswer > actualAnswer * 0.95)) {
+                if (("<math>" + MathLive.convertLatexToMathMl(self.currAnswer) + "</math>") === self.problem.answer.replace(" xmlns='http://www.w3.org/1998/Math/MathML'", "").replace(" xmlns=\"http://www.w3.org/1998/Math/MathML\"", "") || (!self.problem.mustMatch && studentAnswer <= actualAnswer * 1.05 && studentAnswer >= actualAnswer * 0.95) || (studentAnswer === actualAnswer)) {
+                  console.log("Correct");
+                  self.correct();
+                } else {
+                  console.log("Incorrect");
+                  self.incorrect();
+                }
+
+              });
+            });
+          } else {
+            console.log("Student Answer: ", self.currAnswer);
+            console.log("Correct Answer: " + self.problem.answer);
+
+            const wolframURL = "https://www.wolframcloud.com/obj/16fd1fd7-c20e-4957-98dc-6667d81ad0e9";
+
+            const request = encodeURI(wolframURL + "?studentAnswer=" + self.currAnswer + "&correctAnswer=" + self.problem.answer + "&error=" + self.problem.error + "&mustMatch=" + (self.problem.mustMatch ? "true" : "false"));
+
+            console.log(request);
+
+            axios.post("wp-json/physics_genie/external-request", {
+              method: "GET",
+              url: request
+            }).then((response) => {
+              if (response.data === "True") {
                 console.log("Correct");
                 self.correct();
               } else {
                 console.log("Incorrect");
                 self.incorrect();
               }
-
             });
-          });
+          }
+
 
         }
       },
       correct: async function() {
         this.pastAnswers.push(this.currAnswer);
-        this.currAnswer = "";
+        this.processingResult = "correct";
         this.result = "correct";
+        this.currAnswer = "";
         this.$store.commit('setProcessing', false);
         if (this.official) {
-          await this.$store.dispatch('SubmitAttempt');
-          this.$store.dispatch('GetUserStats');
+          await this.$store.dispatch('SubmitAttempt', "correct");
+          await this.$store.dispatch('GetUserStats');
         }
+        this.processingResult = "";
       },
       incorrect: async function() {
         this.pastAnswers.push(this.currAnswer);
@@ -233,20 +305,23 @@
         this.$store.commit('setProcessing', false);
         if (this.pastAnswers.length === 3) {
           this.result = "incorrect";
+          this.processingResult = "incorrect";
           if (this.official) {
-            await this.$store.dispatch('SubmitAttempt');
-            this.$store.dispatch('GetUserStats');
+            await this.$store.dispatch('SubmitAttempt', "incorrect");
+            await this.$store.dispatch('GetUserStats');
           }
         }
+        this.processingResult = "";
       },
       gaveUp: async function() {
         this.currAnswer = "";
         this.result = "gave up";
-        this.$store.commit('setProcessing', false);
+        this.processingResult = "incorrect";
         if (this.official) {
-          await this.$store.dispatch('SubmitAttempt');
-          this.$store.dispatch('GetUserStats');
+          await this.$store.dispatch('SubmitAttempt', "gave up");
+          await this.$store.dispatch('GetUserStats');
         }
+        this.processingResult = "";
       },
       skip: async function() {
         if (this.official) {
@@ -257,14 +332,6 @@
         }
         this.pastAnswers = [];
         this.result = "";
-      },
-      showResult: async function() {
-        if (this.official) {
-          await this.$store.dispatch('SubmitAttempt');
-          this.$store.commit('setProcessing', false);
-          this.$store.dispatch('GetUserStats');
-        }
-        this.$store.commit('setProcessing', false);
       },
       next: async function() {
         if (this.official) {
@@ -308,7 +375,7 @@
   }
 
   #progress-bars {
-    height: 110px;
+    height: 120px;
     width: 100%;
     display: flex;
     flex-direction: row;
@@ -331,7 +398,9 @@
     font-style: italic;
     background: #285380;
     color: white;
-    padding: 8px 15px;
+    height: 35px;
+    line-height: 35px;
+    padding-left: 15px;
     font-size: 19px;
     margin: 0;
   }
@@ -340,89 +409,8 @@
     background: rgba(56, 100, 155, 0.8);
   }
 
-  #progress-bars .badge {
-    width: 55px;
-    height: 55px;
-    border-radius: 27.5px;
-    background: #f1f4ff;
-    border: 1px solid #285380;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 27px;
-    font-family: "Caveat", sans-serif;
-    font-weight: 700;
-    top: -30px;
-    left: 5%;
-  }
-
-  #progress-bars .badge .img {
-    /*background: url("../assets/MechanicsBadge.png") no-repeat center;*/
-    -webkit-background-size: cover;
-    -moz-background-size: cover;
-    -o-background-size: cover;
-    background-size: cover;
-    width: 37px;
-    height: 37px;
-    position: absolute;
-    top: 8px;
-    left: 10px;
-    transition: width .4s ease, height .4s ease, top .4s ease;
-  }
-
-  #progress-bars .focus .badge {
-    border: 1px solid rgba(56, 100, 155, 0.8);
-  }
-
-  #progress-bars .focus .badge .img {
-    background: url("../assets/logo.svg") no-repeat center;
-    width: 45px;
-    height: 45px;
-    top: 1.5px;
-    left: 9px;
-    transition: width .4s ease, height .4s ease;
-  }
-
-  #progress-bars .bar {
-    width: 80%;
-    height: 35px;
-    border: 1px solid #285380;
-    position: relative;
-    top: 15px;
-    left: calc(5% + 40px);
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-  }
-
-  #progress-bars .bar > div {
-    height: 100%;
-  }
-
-  #progress-bars .bar .curr-progress {
-    background: #f1f4ff;
-    border-right: 1px solid #a5a9b4;
-    width: 0;
-    transition: width .8s ease;
-  }
-
-  #progress-bars .bar .advancement-progress {
-    border-right: 1px solid #b0b3cd;
-    background-image: linear-gradient(to right, transparent, #d8dcff);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 2px;
-    font-size: 10px;
-    color: rgba(74, 87, 94, 0.81);
-    width: 0;
-    transition: width .8s ease;
-  }
-
-  #progress-bars .focus .bar {
-    border: 1px solid rgba(56, 100, 155, 0.8);
+  #progress-bars .progress-bar {
+    width: 100%;
   }
 
   #summary {
@@ -458,6 +446,14 @@
 
   #student-answers .incorrect {
     color: red;
+  }
+
+  #answer-container .expecting {
+    margin: 10px 0 0 20px;
+    display: inline-block;
+    font-size: 10px;
+    color: #285380;
+    font-family: "Montserrat", sans-serif;
   }
 
   .error {
@@ -677,40 +673,4 @@
     background: rgba(56, 100, 155, 0.1);
   }
 
-
-
-  /* Math Editor Styling */
-  #studentAnswer {
-    height: 52px;
-    transition: height .5s ease;
-  }
-
-  #studentAnswer .wrs_panelContainer {
-    height: 0;
-    opacity: 0;
-    position: relative;
-    top: 0;
-    transition: top .4s ease, height .25s ease, opacity .25s ease;
-  }
-
-  #studentAnswer .wrs_formulaDisplay {
-    height: inherit !important;
-    overflow: hidden !important;
-    padding: 6px;
-  }
-
-  #studentAnswer .wrs_formulaDisplayWrapper {
-    position: relative;
-    top: 0;
-    transition: top .25s ease;
-  }
-
-
-  #studentAnswer .wrs_container > .wrs_underlineCaret {
-    display: none;
-  }
-
-  #studentAnswer .wrs_linksContainer.wrs_noTabs > a {
-    display: none;
-  }
 </style>

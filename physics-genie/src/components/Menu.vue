@@ -11,12 +11,12 @@
         </div>
         <div class = "text">Play</div>
       </router-link>
-      <router-link to = "/review" class = "router-link">
-        <div class = "img review">
-          <i class = "fa fa-retweet" aria-hidden = "true"></i>
-        </div>
-        <div class = "text">Review</div>
-      </router-link>
+      <!--<router-link to = "/review" class = "router-link">-->
+        <!--<div class = "img review">-->
+          <!--<i class = "fa fa-retweet" aria-hidden = "true"></i>-->
+        <!--</div>-->
+        <!--<div class = "text">Review</div>-->
+      <!--</router-link>-->
       <router-link to = "/setup" class = "router-link">
         <div class = "img setup">
           <i class = "fa fa-sliders" aria-hidden = "true"></i>
@@ -29,12 +29,12 @@
         </div>
         <div class = "text" style = "color: #ff845d;">Submit</div>
       </router-link>
-      <router-link to = "/help" class = "router-link">
+      <a href = "http://physicsgenie.ga/help" target = "_blank" class = "router-link">
         <div class = "img help">
           <i class = "fa fa-question" aria-hidden = "true"></i>
         </div>
         <div class = "text">Help</div>
-      </router-link>
+      </a>
     </div>
 
     <a href = "http://physicsgenie.ga/" id = "back-home" class = "router-link">

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
 
 const state = {
   processing: false,
@@ -16,7 +15,6 @@ const state = {
   userStats: {
     topics: [],
     presented: null,
-    skipped: null,
     correct: null,
     avgAttempts: null,
     xp: null,
@@ -29,6 +27,8 @@ const state = {
     problemText: "",
     diagram: "",
     answer: "",
+    mustMatch: false,
+    error: 5,
     solution: "",
     hintOne: "",
     hintTwo: null,
@@ -50,6 +50,7 @@ const state = {
     hintTwoInclude: true,
     answer: "",
     mustMatch: false,
+    error: 5,
     solution: "",
     solutionDiagram: "",
     solutionDiagramFile: null,
@@ -76,6 +77,7 @@ const state = {
     hintTwoInclude: true,
     answer: "",
     mustMatch: false,
+    error: 5,
     solution: "",
     solutionDiagram: "",
     solutionDiagramFile: null,
@@ -93,7 +95,8 @@ const state = {
   },
   pastAnswers: [],
   result: "",
-  currAnswer: ""
+  currAnswer: "",
+  WOLFRAM_ID: "8WE72P-EGWA29LPAW"
 };
 const getters = {
   Confirmations: state => state.confirmations,
@@ -108,7 +111,8 @@ const getters = {
   CurrProblem: state => state.currProblem,
   PastAnswers: state => state.pastAnswers,
   CurrAnswer: state => state.currAnswer,
-  Result: state => state.result
+  Result: state => state.result,
+  WOLFRAM_ID: state => state.WOLFRAM_ID
 };
 const actions = {
   async Confirmation({commit}, message) {
@@ -148,6 +152,8 @@ const actions = {
       problemText: response.data.problem_text.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
       diagram: (response.data.diagram === null) ? null : response.data.diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
       answer: response.data.answer.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
+      mustMatch: response.data.must_match === "1",
+      error: response.data.error,
       solution: response.data.solution.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
       solutionDiagram: (response.data.solution_diagram === null) ? null : response.data.solution_diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
       hintOne: response.data.hint_one.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
@@ -161,66 +167,51 @@ const actions = {
     });
   },
   async GetUserStats({commit, getters}) {
-    let response = await axios.get('wp-json/physics_genie/user-stats?topic=z&focus=z', {headers: {'Authorization': 'Bearer ' + getters.Token}});
+    let response = await axios.get('wp-json/physics_genie/user-stats', {headers: {'Authorization': 'Bearer ' + getters.Token}});
+
+    let overall = response.data.filter(function(row) {return row.topic === "z" && row.focus === "z"})[0];
+
     let stats = {
       topics: [],
-      presented: parseInt(response.data[0].num_presented),
-      correct: parseInt(response.data[0].num_correct),
-      avgAttempts: parseFloat(response.data[0].avg_attempts),
-      xp: parseInt(response.data[0].xp),
-      streak: parseInt(response.data[0].streak),
-      longestWinstreak: parseInt(response.data[0].longest_winstreak),
-      longestLosestreak: parseInt(response.data[0].longest_losestreak)
+      presented: parseInt(overall.num_presented),
+      correct: parseInt(overall.num_correct),
+      avgAttempts: parseFloat(overall.avg_attempts),
+      xp: parseInt(overall.xp),
+      streak: parseInt(overall.streak),
+      longestWinstreak: parseInt(overall.longest_winstreak),
+      longestLosestreak: parseInt(overall.longest_losestreak)
     };
 
+    getters.ProblemMetaData.topics.forEach(function(topic) {
+      let topicRow = response.data.filter(function(row) {return row.topic === topic.topic && row.focus === "z"})[0];
+      stats.topics.push({
+        topic: topic.name,
+        topicId: topic.topic,
+        foci: [],
+        presented: parseInt(topicRow.num_presented),
+        correct: parseInt(topicRow.num_correct),
+        avgAttempts: parseFloat(topicRow.avg_attempts),
+        xp: parseInt(topicRow.xp),
+        streak: parseInt(topicRow.streak),
+        longestWinstreak: parseInt(topicRow.longest_winstreak),
+        longestLosestreak: parseInt(topicRow.longest_losestreak)
+      });
 
-    // response.data.forEach(row => {
-    //
-    //   if (getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === row.focus}).length > 0) {
-    //     stats.presented += parseInt(row.num_presented);
-    //     stats.skipped += parseInt(row.num_skipped);
-    //     stats.correct += parseInt(row.num_correct);
-    //     stats.avgAttempts = (stats.avgAttempts * stats.presented + row.avg_attempts * row.num_presented) / (stats.presented + row.num_presented);
-    //     stats.xp += parseInt(row.xp);
-    //
-    //     let index = 0;
-    //     if (stats.topics.filter(function(topic) {return topic.topicId === row.topic}).length > 0) {
-    //       for (let i = 0; i < stats.topics.length; i++) {
-    //         if (stats.topics[i].topic === row.topic) {
-    //           index = i;
-    //         }
-    //       }
-    //       stats.topics[index].presented += parseInt(row.num_presented);
-    //       stats.topics[index].skipped += parseInt(row.num_skipped);
-    //       stats.topics[index].correct += parseInt(row.num_correct);
-    //       stats.topics[index].avgAttempts = (stats.topics[index].avgAttempts * stats.topics[index].presented + row.avg_attempts * row.num_presented) / (stats.topics[index].presented + row.num_presented);
-    //       stats.topics[index].xp += parseInt(row.xp);
-    //     } else {
-    //       stats.topics.push({
-    //         topic: getters.ProblemMetaData.topics.filter(function(topic) {return topic.topic === row.topic})[0].name,
-    //         topicId: row.topic,
-    //         foci: [],
-    //         presented: parseInt(row.num_presented),
-    //         skipped: parseInt(row.num_skipped),
-    //         correct: parseInt(row.num_correct),
-    //         avgAttempts: parseInt(row.avg_attempts),
-    //         xp: parseInt(row.xp),
-    //         streak: 0
-    //       });
-    //     }
-    //
-    //     stats.topics[index].foci.push({
-    //       focus: getters.ProblemMetaData.focuses.filter(function(focus) {return focus.focus === row.focus})[0].name,
-    //       focusId: row.focus,
-    //       presented: parseInt(row.num_presented),
-    //       skipped: parseInt(row.num_skipped),
-    //       correct: parseInt(row.num_correct),
-    //       avgAttempts: parseInt(row.avg_attempts),
-    //       xp: parseInt(row.xp),
-    //       streak: parseInt(row.streak)
-    //     });
-    //   }
-    // });
+      getters.ProblemMetaData.focuses.filter(function(focus) {return focus.topic === topic.topic}).forEach(function(focus) {
+        let focusRow = response.data.filter(function(row) {return row.topic === topic.topic && row.focus === focus.focus})[0];
+        stats.topics[stats.topics.length - 1].foci.push({
+          focus: focus.name,
+          focusId: focus.focus,
+          presented: parseInt(focusRow.num_presented),
+          correct: parseInt(focusRow.num_correct),
+          avgAttempts: parseFloat(focusRow.avg_attempts),
+          xp: parseInt(focusRow.xp),
+          streak: parseInt(focusRow.streak),
+          longestWinstreak: parseInt(focusRow.longest_winstreak),
+          longestLosestreak: parseInt(focusRow.longest_losestreak)
+        });
+      });
+    });
 
     commit('setUserStats', stats);
   },
@@ -229,7 +220,8 @@ const actions = {
     await axios.get('wp-json/physics_genie/contributor-problems', {headers: {'Authorization': 'Bearer ' + getters.Token}}).then((response) => {
       let problems = [];
       response.data.forEach(function(problem) {
-        let problemTextShortened = problem.problem_text.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
+
+          let problemTextShortened = problem.problem_text.replace(/\\\\/g, "\\").replace(/\\"/g, "'");
 
         if (problemTextShortened.length > 200) {
           problemTextShortened = problemTextShortened.slice(0, 200);
@@ -282,7 +274,8 @@ const actions = {
           hintOne: problem.hint_one.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
           hintTwo: (problem.hint_two === null) ? null : problem.hint_two.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
           answer: problem.answer.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
-          mustMatch: !!problem.must_match,
+          mustMatch: problem.must_match === "1",
+          error: problem.error,
           solution: problem.solution.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
           solutionDiagram: (problem.solution_diagram === null) ? null : problem.solution_diagram.replace(/\\\\/g, "\\").replace(/\\"/g, "'"),
           topic: problem.topic,
@@ -313,11 +306,15 @@ const actions = {
       });
     }
 
+    const regexp = new RegExp(/((?<!\\|[A-Za-z])[A-Za-z]+)|(\\alpha)|(\\beta)|(\\[Gg]amma)|(\\[Dd]elta)|(\\epsilon)|(\\varepsilon)|(\\zeta)|(\\eta)|(\\[Tt]heta)|(\\vartheta)|(\\iota)|(\\kappa)|(\\[Ll]ambda)|(\\mu)|(\\nu)|(\\[Xx]i)|(\\[Pp]i)|(\\rho)|(\\varrho)|(\\[Ss]igma)|(\\tau)|(\\[Uu]psilon)|(\\[Pp]hi)|(\\varphi)|(\\chi)|(\\[Pp]si)|(\\[Oo]mega)/);
+
+
     await axios.post("wp-json/physics_genie/submit-problem", {
       problem_text: getters.CurrSubmission.problemText,
       diagram: (getters.CurrSubmission.diagramType === "file" ? getters.CurrSubmission.diagramFile.text : (getters.CurrSubmission.diagramType === "code" ? getters.CurrSubmission.diagram : "")),
-      answer: "<math>" + MathLive.convertLatexToMathMl(getters.CurrSubmission.answer) + "</math>",
+      answer: getters.CurrSubmission.answer,
       must_match: getters.CurrSubmission.mustMatch ? "true" : "false",
+      error: regexp.test(getters.CurrSubmission.answer) ? 0 : getters.CurrSubmission.error,
       solution: getters.CurrSubmission.solution,
       solution_diagram: (getters.CurrSubmission.solutionDiagramType === "file" ? getters.CurrSubmission.solutionDiagramFile.text : (getters.CurrSubmission.solutionDiagramType === "code" ? getters.CurrSubmission.solutionDiagram : "")),
       hint_one: getters.CurrSubmission.hintOne,
@@ -341,6 +338,7 @@ const actions = {
         hintTwoInclude: true,
         answer: "",
         mustMatch: false,
+        error: 5,
         solution: "",
         solutionDiagram: "",
         solutionDiagramFile: null,
@@ -359,12 +357,16 @@ const actions = {
     });
   },
   async EditProblem({commit, getters}) {
+
+    const regexp = new RegExp(/((?<!\\|[A-Za-z])[A-Za-z]+)|(\\alpha)|(\\beta)|(\\[Gg]amma)|(\\[Dd]elta)|(\\epsilon)|(\\varepsilon)|(\\zeta)|(\\eta)|(\\[Tt]heta)|(\\vartheta)|(\\iota)|(\\kappa)|(\\[Ll]ambda)|(\\mu)|(\\nu)|(\\[Xx]i)|(\\[Pp]i)|(\\rho)|(\\varrho)|(\\[Ss]igma)|(\\tau)|(\\[Uu]psilon)|(\\[Pp]hi)|(\\varphi)|(\\chi)|(\\[Pp]si)|(\\[Oo]mega)/);
+
     await axios.put("wp-json/physics_genie/edit-problem", {
       problem_id: getters.CurrSubmissionEdit.problemID,
       problem_text: getters.CurrSubmissionEdit.problemText,
       diagram: (getters.CurrSubmissionEdit.diagramType === "file" ? getters.CurrSubmissionEdit.diagramFile.text : (getters.CurrSubmissionEdit.diagramType === "code" ? getters.CurrSubmissionEdit.diagram : "")),
-      answer: "<math>" + MathLive.convertLatexToMathMl(getters.CurrSubmissionEdit.answer) + "</math>",
+      answer: getters.CurrSubmissionEdit.answer,
       must_match: getters.CurrSubmissionEdit.mustMatch ? "true" : "false",
+      edit: regexp.test(getters.CurrSubmissionEdit.answer) ? 0 : getters.CurrSubmissionEdit.error,
       solution: getters.CurrSubmissionEdit.solution,
       solution_diagram: (getters.CurrSubmissionEdit.solutionDiagramType === "file" ? getters.CurrSubmissionEdit.solutionDiagramFile.text : (getters.CurrSubmissionEdit.solutionDiagramType === "code" ? getters.CurrSubmissionEdit.solutionDiagram : "")),
       hint_one: getters.CurrSubmissionEdit.hintOne,
@@ -388,6 +390,7 @@ const actions = {
         hintTwoInclude: true,
         answer: "",
         mustMatch: false,
+        error: 5,
         solution: "",
         solutionDiagram: "",
         solutionDiagramFile: null,
@@ -405,11 +408,11 @@ const actions = {
       });
     });
   },
-  async SubmitAttempt({getters}) {
+  async SubmitAttempt({getters}, result) {
     await axios.post("wp-json/physics_genie/submit-attempt", {
       problem_id: getters.CurrProblem.problemID,
       num_attempts: getters.PastAnswers.length,
-      correct: getters.Result === "correct" ? "true" : "false",
+      correct: result === "correct" ? "true" : "false",
       topic: getters.CurrProblem.topic,
       focus: getters.CurrProblem.mainFocus,
       difficulty: getters.CurrProblem.difficulty,
@@ -436,10 +439,6 @@ const mutations = {
   },
   setUserSetup(state, setup) {
     state.userSetup = setup;
-  },
-  setLongestStreaks(state, streaks) {
-    state.longestWinstreak = streaks.winstreak;
-    state.longestLosestreak = streaks.losestreak;
   },
   setProblemMetaData(state, data) {
     state.problemMetaData = data;

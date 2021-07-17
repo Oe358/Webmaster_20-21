@@ -14,10 +14,22 @@
           <router-link to = "/setup" class = "link">Problem Setup</router-link>
         </div>
       </div>
-      <!--<div id = "settings" class = "box">-->
-        <!--Topic: {{ submitData.topics.filter(function(topic) {return topic.topic === setup.topics[0]})[0].name }}-->
-        <!--Focus: {{ submitData.focuses.filter(function(focus) {return focus.focus === setup.foci[0]})[0].name }}-->
-      <!--</div>-->
+      <div id = "overview" class = "box">
+        <div class = "row">
+          <div>
+            <h3>Level</h3>
+            <p>{{ Math.floor(Math.sqrt(userStats.xp+9))-2 }}</p>
+          </div>
+          <div>
+            <h3>Total XP</h3>
+            <p>{{ userStats.xp }}</p>
+          </div>
+        </div>
+        <div>
+          <h3>Problems Attempted</h3>
+          <p>{{ userStats.presented }}</p>
+        </div>
+      </div>
       <div id = "summary" class = "box">
         <div class = "summary-info left">
           <div class = "descriptors">
@@ -28,7 +40,7 @@
           <div class = "values">
             <div>{{ userStats.correct }}</div>
             <div>{{ userStats.presented - userStats.correct }}</div>
-            <div>{{ userStats.avgAttempts }}</div>
+            <div>{{ userStats.avgAttempts.toFixed(2) }}</div>
           </div>
         </div>
         <div>
@@ -50,9 +62,56 @@
           </div>
         </div>
       </div>
-      <!--<div class = "box" v-for = "topic in submitData.topics">-->
-        <!--<h2>{{ topic.name }}</h2>-->
-      <!--</div>-->
+      <div id = "breakdown" class = "box">
+        <h1 v-on:click = "toggleBreakdown" ><i class = "fa fa-angle-right" v-bind:style = "[{transform: breakdown ? 'rotate(90deg)' : 'rotate(0deg)'}, {marginRight: breakdown ? '12px' : '8px'}]"></i>Focus Breakdown</h1>
+        <div v-if = "breakdown">
+          <div v-for = "focus in userStats.topics[0].foci.filter(function(focusTemp) {return focusTemp.presented > 0}).sort((firstEl, secondEl) => {return (secondEl.xp > firstEl.xp ? 1 : -1)})" v-bind:key = "focus.focusId" class = "breakdown-focus">
+            <div class = "initial">
+              <h3>{{ focus.focus }} ({{ focus.xp }})</h3>
+              <ProgressBar class = "progress-bar" v-bind:xp = "focus.xp" v-bind:add = "null" />
+              <i class = "fa fa-angle-down" v-on:click = "toggleFocusExpand(focus.focusId)" v-bind:style = "{transform: fociExpanded.includes(focus.focusId) ? 'rotate(180deg)' : 'rotate(0deg)'}"></i>
+            </div>
+            <div class = "expanded" v-bind:style = "{height: fociExpanded.includes(focus.focusId) ? '200px' : '0'}">
+              <div>
+                <div class = "descriptors">
+                  <div>Level</div>
+                  <div>Total XP</div>
+                  <div>Problems Attempted</div>
+                </div>
+                <div class = "values">
+                  <div>{{ Math.floor(Math.sqrt(focus.xp+9))-2 }}</div>
+                  <div>{{ focus.xp }}</div>
+                  <div>{{ focus.presented }}</div>
+                </div>
+              </div>
+              <div>
+                <div class = "descriptors">
+                  <div>Problems Correct</div>
+                  <div>Problems Incorrect</div>
+                  <div>Average Attempts</div>
+                </div>
+                <div class = "values">
+                  <div>{{ focus.correct }}</div>
+                  <div>{{ focus.presented - focus.correct }}</div>
+                  <div>{{ focus.avgAttempts.toFixed(2) }}</div>
+                </div>
+              </div>
+              <div>
+                <div class = "descriptors">
+                  <div>Longest Winstreak</div>
+                  <div>Longest Losestreak</div>
+                  <div>Current Streak</div>
+                </div>
+                <div class = "values">
+                  <div>{{ focus.longestWinstreak }}</div>
+                  <div>{{ focus.longestLosestreak }}</div>
+                  <div>{{ (focus.streak > 0 ? "+" : "-") + Math.abs(focus.streak)}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -63,20 +122,22 @@
   import User from "../components/User";
   import RadialProgressBar from "vue-radial-progress/src/RadialProgressBar";
   import { mapGetters } from "vuex";
-  import * as MathLive from 'mathlive/dist/mathlive.min.mjs';
+  import ProgressBar from '../components/ProgressBar';
 
   export default {
     name: "Home",
     components: {
       RadialProgressBar,
       Menu,
-      User
+      User,
+      ProgressBar
     },
     data() {
       return {
         user: this.$store.getters.StateUser,
         editingName: false,
-        formula: "",
+        breakdown: false,
+        fociExpanded: []
       }
     },
     computed: {
@@ -99,13 +160,22 @@
       cancelNameEdit: function() {
         this.user = this.$store.getters.StateUser;
         this.editingName = false;
+      },
+      toggleBreakdown: function() {
+        this.breakdown = !this.breakdown;
+      },
+      toggleFocusExpand: function(focusId) {
+        if (this.fociExpanded.includes(focusId)) {
+          this.fociExpanded.splice(this.fociExpanded.indexOf(focusId), 1);
+        } else {
+          this.fociExpanded.push(focusId);
+        }
       }
     },
     updated() {
       this.$store.dispatch('GetUserStats');
     },
     mounted() {
-
     }
   }
 </script>
@@ -143,13 +213,12 @@
     box-shadow: 0 0 10px 13px rgba(17, 21, 33, 0.3);
   }
 
-  .box h2 {
+  .box h1 {
     font-family: "Antic", sans-serif;
-
   }
 
   #profile {
-    width: 500px;
+    width: 45%;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -184,9 +253,9 @@
     transition: opacity .3s ease;
   }
 
-  .avatar:hover .change {
-    opacity: 1;
-  }
+  /*.avatar:hover .change {*/
+    /*opacity: 1;*/
+  /*}*/
 
   .profile-info {
     margin-left: 30px;
@@ -229,8 +298,33 @@
     color: #ff2540;
   }
 
-  #settings {
-    width: 200px;
+  #overview {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: flex-start;
+  }
+
+  #overview .row {
+    display: flex;
+    flex-direction: row;
+  }
+
+  #overview .row div {
+    margin-right: 30px;
+  }
+
+  #overview h3 {
+    font-family: "Nunito", sans-serif;
+    font-size: 16px;
+    border-bottom: 1px solid black;
+    font-weight: light;
+  }
+
+  #overview p {
+    font-family: "Nunito", sans-serif;
+    font-size: 15px;
+    margin-top: 5px;
   }
 
   #summary {
@@ -242,7 +336,7 @@
     justify-content: space-between;
   }
 
-  .progress-bar {
+  #summary .progress-bar {
     bottom: 20px;
     font-family: "Montserrat", sans-serif;
     font-size: 40px;
@@ -283,6 +377,135 @@
   }
 
   .summary-info.right .descriptors {
+    text-align: right;
+  }
+
+  #breakdown {
+    height: inherit;
+    width: 100%;
+    padding: 40px 60px;
+    margin-bottom: 50px;
+  }
+
+  #breakdown > div {
+    margin-top: 40px;
+  }
+
+  #breakdown h1 {
+    cursor: pointer;
+    position: relative;
+    display: inline-block;
+  }
+
+  #breakdown h1::after {
+    content: "";
+    position: absolute;
+    bottom: -7px;
+    left: 20px;
+    width: 0;
+    height: 2px;
+    background: black;
+    transition: width .3s ease;
+  }
+
+  #breakdown h1:hover::after {
+    width: calc(100% - 20px);
+  }
+
+  #breakdown h1 .fa-angle-right {
+    transition: transform .3s ease, margin-right .3s ease;
+  }
+
+  #breakdown .breakdown-focus {
+    border-top: 1px solid #285380;
+    background: transparent;
+  }
+
+  #breakdown .breakdown-focus:hover {
+    background: rgba(153, 161, 227, 0.2);
+  }
+
+  #breakdown .initial {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+  }
+
+  #breakdown h3 {
+    font-family: "Nunito", sans-serif;
+    font-size: 16px;
+    font-weight: lighter;
+    margin-left: 15px;
+    width: 25%;
+  }
+
+  #breakdown .progress-bar {
+    width: 60%;
+  }
+
+  #breakdown .fa-angle-down {
+    margin-left: 3%;
+    font-size: 22px;
+    cursor: pointer;
+    background: transparent;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 30px;
+    transition: background .2s ease;
+  }
+
+  #breakdown .fa-angle-down:hover {
+    background: rgba(153, 161, 227, 0.4);
+    transition: transform .3s ease;
+  }
+
+
+  #breakdown .expanded {
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;
+    transition: height .3s ease;
+    font-family: "Nunito", sans-serif;
+    font-size: 13px;
+  }
+
+  #breakdown .expanded > div {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 0 10px 0.5px rgba(17, 21, 33, 0.2);
+    border: none;
+    padding: 25px 40px;
+    display: flex;
+    flex-direction: row;
+    margin-top: -10px;
+  }
+
+  #breakdown .breakdown-focus:hover .expanded > div {
+    background: #f9fbff;
+  }
+
+  #breakdown .expanded > div > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+  }
+
+  #breakdown .expanded > div > div > div {
+    margin: 5px 0;
+  }
+
+  #breakdown .expanded .descriptors {
+    margin-right: 40px;
+  }
+
+  #breakdown .expanded .values {
     text-align: right;
   }
 
